@@ -7,6 +7,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import smart_campus_backend.auth.dto.UserManagementUserResponse;
+import smart_campus_backend.auth.entity.Role;
 import smart_campus_backend.auth.entity.User;
 import smart_campus_backend.auth.repository.UserRepository;
 
@@ -25,7 +26,7 @@ public class AdminUserManagementService {
             List<Predicate> predicates = new ArrayList<>();
 
             if (role != null && !role.isBlank()) {
-                String normalizedRole = normalizeRole(role);
+                Role normalizedRole = normalizeRole(role);
                 predicates.add(cb.equal(root.get("role"), normalizedRole));
             }
 
@@ -57,7 +58,7 @@ public class AdminUserManagementService {
 
     public UserManagementUserResponse updateUserRole(Long id, String requestedRole, Authentication authentication) {
         User targetUser = getUser(id);
-        String normalizedRole = normalizeRole(requestedRole);
+        Role normalizedRole = normalizeRole(requestedRole);
 
         protectLastSuperAdminRoleChange(targetUser, normalizedRole);
         protectSelfRoleChange(authentication, targetUser);
@@ -71,7 +72,7 @@ public class AdminUserManagementService {
         protectSelfChange(authentication, targetUser);
 
         if (isSuperAdmin(targetUser) && banned) {
-            long superAdminCount = userRepository.countByRole("ROLE_SUPER_ADMIN");
+            long superAdminCount = userRepository.countByRole(Role.SUPER_ADMIN);
             if (superAdminCount <= 1) {
                 throw new RuntimeException("Cannot ban the last SUPER_ADMIN");
             }
@@ -86,7 +87,7 @@ public class AdminUserManagementService {
         protectSelfChange(authentication, targetUser);
 
         if (isSuperAdmin(targetUser)) {
-            long superAdminCount = userRepository.countByRole("ROLE_SUPER_ADMIN");
+            long superAdminCount = userRepository.countByRole(Role.SUPER_ADMIN);
             if (superAdminCount <= 1) {
                 throw new RuntimeException("Cannot delete the last SUPER_ADMIN");
             }
@@ -105,18 +106,17 @@ public class AdminUserManagementService {
                 .id(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
-                .role(user.getRole().replace("ROLE_", ""))
+                .role(user.getRole() == null ? Role.USER.name() : user.getRole().name())
                 .enabled(user.isEnabled())
                 .build();
     }
 
-    private String normalizeRole(String role) {
-        String normalized = role.trim().toUpperCase(Locale.ROOT);
-        return normalized.startsWith("ROLE_") ? normalized : "ROLE_" + normalized;
+    private Role normalizeRole(String role) {
+        return Role.fromStoredValue(role);
     }
 
     private boolean isSuperAdmin(User user) {
-        return "ROLE_SUPER_ADMIN".equals(user.getRole());
+        return user.getRole() == Role.SUPER_ADMIN;
     }
 
     private void protectSelfChange(Authentication authentication, User targetUser) {
@@ -133,9 +133,9 @@ public class AdminUserManagementService {
         }
     }
 
-    private void protectLastSuperAdminRoleChange(User targetUser, String nextRole) {
-        if (isSuperAdmin(targetUser) && !"ROLE_SUPER_ADMIN".equals(nextRole)) {
-            long superAdminCount = userRepository.countByRole("ROLE_SUPER_ADMIN");
+    private void protectLastSuperAdminRoleChange(User targetUser, Role nextRole) {
+        if (isSuperAdmin(targetUser) && nextRole != Role.SUPER_ADMIN) {
+            long superAdminCount = userRepository.countByRole(Role.SUPER_ADMIN);
             if (superAdminCount <= 1) {
                 throw new RuntimeException("Cannot downgrade the last SUPER_ADMIN");
             }

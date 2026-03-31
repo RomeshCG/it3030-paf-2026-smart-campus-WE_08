@@ -6,10 +6,10 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import smart_campus_backend.auth.entity.Role;
 import smart_campus_backend.auth.repository.UserRepository;
 
 import java.util.List;
-import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -35,8 +35,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         );
     }
 
-    private String normalizeAuthority(String role) {
-        String normalized = (role == null ? "USER" : role.trim()).toUpperCase(Locale.ROOT);
-        return normalized.startsWith("ROLE_") ? normalized : "ROLE_" + normalized;
+    private String normalizeAuthority(Role role) {
+        return (role == null ? Role.USER : role).asAuthority();
     }
 }
