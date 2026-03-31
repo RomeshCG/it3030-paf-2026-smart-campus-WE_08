@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { ResourceTypes, ResourceStatuses } from '../types/resource';
 import { getResources, deleteResource, getDashboardStats } from '../api/resourceApi';
 import { ResourceForm } from './ResourceForm';
-import { Plus, Edit2, Trash2, MapPin, Users, Activity, RefreshCw, Layers, Eye, Download, PieChart, CheckCircle, AlertCircle, Shield, FileDown } from 'lucide-react';
+import { Plus, Edit2, Trash2, MapPin, Users, Activity, RefreshCw, Layers, Eye, Download, PieChart, CheckCircle, AlertCircle, Shield, FileDown, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
@@ -13,13 +13,14 @@ export const ResourceList = () => {
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   
-  // Role-based UI (Mock role for demo - can be 'ADMIN' or 'USER')
+  // Role-based UI
   const [userRole, setUserRole] = useState('ADMIN');
 
-  // Filters
+  // Filters & Search
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [capacityFilter, setCapacityFilter] = useState('');
+  const [searchFilter, setSearchFilter] = useState('');
   const [size] = useState(6);
 
   // Modals
@@ -47,7 +48,8 @@ export const ResourceList = () => {
         size,
         type: typeFilter || undefined,
         status: statusFilter || undefined,
-        capacity: capacityFilter || undefined
+        capacity: capacityFilter || undefined,
+        name: searchFilter || undefined
       });
       setResources(data.content || []);
       setTotalPages(data.totalPages || 0);
@@ -58,10 +60,13 @@ export const ResourceList = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, size, typeFilter, statusFilter, capacityFilter]);
+  }, [page, size, typeFilter, statusFilter, capacityFilter, searchFilter]);
 
   useEffect(() => {
-    fetchResources();
+    const timer = setTimeout(() => {
+      fetchResources();
+    }, 300);
+    return () => clearTimeout(timer);
   }, [fetchResources]);
 
   const handleDelete = async () => {
@@ -108,11 +113,9 @@ export const ResourceList = () => {
     link.href = url;
     link.download = `smart_campus_catalogue_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`;
     
-    // For Firefox, it's better to add the link to the body
     document.body.appendChild(link);
     link.click();
     
-    // Cleanup
     setTimeout(() => {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
@@ -180,8 +183,23 @@ export const ResourceList = () => {
       {/* Tools & Filters Section */}
       <div className="glass-panel" style={{ marginBottom: '2rem' }}>
         <div className="filters-panel">
-          <div style={{ flex: 1, minWidth: '200px' }}>
-            <label className="form-label"><Layers size={14} style={{ display: 'inline', marginRight: '6px' }}/> Filter by Type</label>
+          <div style={{ flex: 2, minWidth: '300px', position: 'relative' }}>
+            <label className="form-label"><Search size={14} style={{ display: 'inline', marginRight: '6px' }}/> Search Resources</label>
+            <div style={{ position: 'relative' }}>
+              <input 
+                type="text" 
+                className="form-control" 
+                placeholder="Search by name..."
+                style={{ paddingLeft: '2.5rem' }}
+                value={searchFilter}
+                onChange={(e) => { setSearchFilter(e.target.value); setPage(0); }}
+              />
+              <Search size={18} style={{ position: 'absolute', left: '0.8rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+            </div>
+          </div>
+
+          <div style={{ flex: 1, minWidth: '150px' }}>
+            <label className="form-label"><Layers size={14} style={{ display: 'inline', marginRight: '6px' }}/> Type</label>
             <select className="form-control" value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); setPage(0); }}>
               <option value="">All Types</option>
               {Object.values(ResourceTypes).map(t => (
@@ -190,8 +208,8 @@ export const ResourceList = () => {
             </select>
           </div>
           
-          <div style={{ flex: 1, minWidth: '200px' }}>
-            <label className="form-label"><Activity size={14} style={{ display: 'inline', marginRight: '6px' }}/> Filter by Status</label>
+          <div style={{ flex: 1, minWidth: '150px' }}>
+            <label className="form-label"><Activity size={14} style={{ display: 'inline', marginRight: '6px' }}/> Status</label>
             <select className="form-control" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}>
               <option value="">All Statuses</option>
               {Object.values(ResourceStatuses).map(s => (
@@ -200,7 +218,7 @@ export const ResourceList = () => {
             </select>
           </div>
 
-          <div style={{ flex: 1, minWidth: '150px' }}>
+          <div style={{ flex: 1, minWidth: '100px' }}>
             <label className="form-label"><Users size={14} style={{ display: 'inline', marginRight: '6px' }}/> Min Capacity</label>
             <input 
               type="number" 
@@ -211,9 +229,9 @@ export const ResourceList = () => {
             />
           </div>
 
-          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', width: '100%', marginTop: '0.5rem', justifyContent: 'flex-end' }}>
             <button className="btn btn-secondary" onClick={() => {
-              setTypeFilter(''); setStatusFilter(''); setCapacityFilter(''); setPage(0);
+              setTypeFilter(''); setStatusFilter(''); setCapacityFilter(''); setSearchFilter(''); setPage(0);
             }}>
               <RefreshCw size={16} /> Reset
             </button>

@@ -23,10 +23,11 @@ public class CampusResourceController {
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Integer minCapacity,
+            @RequestParam(required = false) String name,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "6") int size) {
         
-        List<ResourceDTO> all = service.getAll(type, status, minCapacity);
+        List<ResourceDTO> all = service.getAll(type, status, minCapacity, name);
         int total = all.size();
         
         // Manual pagination

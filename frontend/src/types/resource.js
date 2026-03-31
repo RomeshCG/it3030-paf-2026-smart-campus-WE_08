@@ -3,7 +3,9 @@ export const ResourceTypes = {
   HALL: 'HALL',
   EQUIPMENT: 'EQUIPMENT',
   STUDIO: 'STUDIO',
-  OFFICE: 'OFFICE'
+  OFFICE: 'OFFICE',
+  CAFE: 'CAFE',
+  STUDY_ZONE: 'STUDY_ZONE'
 };
 
 export const ResourceStatuses = {

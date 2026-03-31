@@ -18,14 +18,14 @@ public class CampusResourceService {
 
     private final CampusResourceRepository repo;
 
-    public List<ResourceDTO> getAll(String type, String status, Integer minCapacity) {
+    public List<ResourceDTO> getAll(String type, String status, Integer minCapacity, String name) {
         List<CampusResource> results;
 
         if (type != null && status != null) {
             results = repo.findByTypeAndStatus(ResourceType.valueOf(type), ResourceStatus.valueOf(status));
-        } else if (type != null) {
+        } else if (type != null && !type.isEmpty()) {
             results = repo.findByType(ResourceType.valueOf(type));
-        } else if (status != null) {
+        } else if (status != null && !status.isEmpty()) {
             results = repo.findByStatus(ResourceStatus.valueOf(status));
         } else {
             results = repo.findAll();
@@ -34,6 +34,12 @@ public class CampusResourceService {
         if (minCapacity != null) {
             results = results.stream()
                     .filter(r -> r.getCapacity() >= minCapacity)
+                    .collect(Collectors.toList());
+        }
+
+        if (name != null && !name.isEmpty()) {
+            results = results.stream()
+                    .filter(r -> r.getName().toLowerCase().contains(name.toLowerCase()))
                     .collect(Collectors.toList());
         }
 
