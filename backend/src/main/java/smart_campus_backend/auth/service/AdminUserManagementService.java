@@ -116,7 +116,7 @@ public class AdminUserManagementService {
     }
 
     private boolean isSuperAdmin(User user) {
-        return user.getRole() == Role.SUPER_ADMIN;
+        return Role.SUPER_ADMIN.equals(user.getRole());
     }
 
     private void protectSelfChange(Authentication authentication, User targetUser) {
@@ -134,7 +134,7 @@ public class AdminUserManagementService {
     }
 
     private void protectLastSuperAdminRoleChange(User targetUser, Role nextRole) {
-        if (isSuperAdmin(targetUser) && nextRole != Role.SUPER_ADMIN) {
+        if (isSuperAdmin(targetUser) && !Role.SUPER_ADMIN.equals(nextRole)) {
             long superAdminCount = userRepository.countByRole(Role.SUPER_ADMIN);
             if (superAdminCount <= 1) {
                 throw new RuntimeException("Cannot downgrade the last SUPER_ADMIN");
