@@ -9,17 +9,35 @@ export function AuthProvider({ children }) {
     const stored = localStorage.getItem('user');
     if (!stored) return null;
     const parsed = JSON.parse(stored);
-    return { ...parsed, role: normalizeRole(parsed.role) };
+    const id =
+      parsed.id != null
+        ? Number(parsed.id)
+        : parsed.userId != null
+          ? Number(parsed.userId)
+          : undefined;
+    return {
+      ...parsed,
+      ...(Number.isFinite(id) ? { id } : {}),
+      role: normalizeRole(parsed.role),
+    };
   });
 
   const [token, setToken] = useState(() => localStorage.getItem('token'));
 
   const saveSession = useCallback((data) => {
     const normalizedRole = normalizeRole(data.role);
+    const rawId = data.userId ?? data.id;
+    const id = rawId != null ? Number(rawId) : undefined;
+    const userPayload = {
+      name: data.name,
+      email: data.email,
+      role: normalizedRole,
+      ...(Number.isFinite(id) ? { id } : {}),
+    };
     localStorage.setItem('token', data.token);
-    localStorage.setItem('user', JSON.stringify({ name: data.name, email: data.email, role: normalizedRole }));
+    localStorage.setItem('user', JSON.stringify(userPayload));
     setToken(data.token);
-    setUser({ name: data.name, email: data.email, role: normalizedRole });
+    setUser(userPayload);
   }, []);
 
   const register = useCallback(async (name, email, password) => {

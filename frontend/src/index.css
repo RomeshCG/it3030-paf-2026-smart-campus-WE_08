@@ -1,4 +1,7 @@
 @import "tailwindcss";
+/* Explicit scan roots (Tailwind v4 + Vite); matches tailwind.config.js content */
+@source "../index.html";
+@source "./**/*.{js,jsx,ts,tsx}";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
