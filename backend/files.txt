@@ -1,0 +1,14 @@
+﻿C:\Users\sithu\Desktop\spring\new\it3030-paf-2026-smart-campus-WE_186_1.1\backend\src\main\java\smart_campus_backend\SmartCampusBackendApplication.java
+C:\Users\sithu\Desktop\spring\new\it3030-paf-2026-smart-campus-WE_186_1.1\backend\src\main\java\smart_campus_backend\auth\config\SecurityConfig.java
+C:\Users\sithu\Desktop\spring\new\it3030-paf-2026-smart-campus-WE_186_1.1\backend\src\main\java\smart_campus_backend\auth\controller\AuthController.java
+C:\Users\sithu\Desktop\spring\new\it3030-paf-2026-smart-campus-WE_186_1.1\backend\src\main\java\smart_campus_backend\auth\dto\AuthResponse.java
+C:\Users\sithu\Desktop\spring\new\it3030-paf-2026-smart-campus-WE_186_1.1\backend\src\main\java\smart_campus_backend\auth\dto\GoogleTokenRequest.java
+C:\Users\sithu\Desktop\spring\new\it3030-paf-2026-smart-campus-WE_186_1.1\backend\src\main\java\smart_campus_backend\auth\dto\LoginRequest.java
+C:\Users\sithu\Desktop\spring\new\it3030-paf-2026-smart-campus-WE_186_1.1\backend\src\main\java\smart_campus_backend\auth\dto\RegisterRequest.java
+C:\Users\sithu\Desktop\spring\new\it3030-paf-2026-smart-campus-WE_186_1.1\backend\src\main\java\smart_campus_backend\auth\entity\AuthProvider.java
+C:\Users\sithu\Desktop\spring\new\it3030-paf-2026-smart-campus-WE_186_1.1\backend\src\main\java\smart_campus_backend\auth\entity\User.java
+C:\Users\sithu\Desktop\spring\new\it3030-paf-2026-smart-campus-WE_186_1.1\backend\src\main\java\smart_campus_backend\auth\repository\UserRepository.java
+C:\Users\sithu\Desktop\spring\new\it3030-paf-2026-smart-campus-WE_186_1.1\backend\src\main\java\smart_campus_backend\auth\security\CustomUserDetailsService.java
+C:\Users\sithu\Desktop\spring\new\it3030-paf-2026-smart-campus-WE_186_1.1\backend\src\main\java\smart_campus_backend\auth\security\JwtAuthenticationFilter.java
+C:\Users\sithu\Desktop\spring\new\it3030-paf-2026-smart-campus-WE_186_1.1\backend\src\main\java\smart_campus_backend\auth\security\JwtUtil.java
+C:\Users\sithu\Desktop\spring\new\it3030-paf-2026-smart-campus-WE_186_1.1\backend\src\main\java\smart_campus_backend\auth\service\AuthService.java
