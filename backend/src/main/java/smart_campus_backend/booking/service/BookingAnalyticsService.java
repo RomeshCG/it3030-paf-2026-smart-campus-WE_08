@@ -5,10 +5,9 @@ import org.springframework.stereotype.Service;
 import smart_campus_backend.booking.dto.BookingAnalyticsResponse;
 import smart_campus_backend.booking.repository.BookingRepository;
 
+import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor

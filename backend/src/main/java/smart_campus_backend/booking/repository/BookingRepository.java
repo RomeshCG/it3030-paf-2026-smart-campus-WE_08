@@ -11,7 +11,6 @@ import smart_campus_backend.booking.entity.BookingStatus;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
-import java.util.Map;
 
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, Long> {

@@ -1,14 +1,14 @@
-import React, { useEffect, useState } from 'react';
-import { getResourceById } from '../api/resourceApi';
-import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, Users, Download, Activity, Calendar, ShieldCheck, Database } from 'lucide-react';
+import { ArrowLeft, MapPin, Users, Download, Activity, Calendar, ShieldCheck, Database, Clock, Info } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { BookingForm } from './BookingForm';
+import { getResourceById } from '../api/resourceApi';
 
 export const ResourceDetails = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const [resource, setResource] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [isBookingOpen, setIsBookingOpen] = useState(false);
 
     useEffect(() => {
         const fetchDetails = async () => {
@@ -114,11 +114,27 @@ export const ResourceDetails = () => {
                             <Download size={18} /> Download Info
                         </button>
                     )}
-                    <button className="btn btn-secondary" style={{ width: '100%' }} onClick={() => toast('Booking feature coming soon!', { icon: '📅' })}>
-                        Schedule Resource
+                    <button 
+                        className="btn btn-secondary" 
+                        style={{ width: '100%' }} 
+                        onClick={() => setIsBookingOpen(true)}
+                        disabled={resource.status !== 'ACTIVE'}
+                    >
+                        <Calendar size={18} /> Schedule Resource
                     </button>
                 </div>
             </div>
+
+            {isBookingOpen && (
+                <BookingForm 
+                    resource={resource} 
+                    onClose={() => setIsBookingOpen(false)} 
+                    onSuccess={() => {
+                        setIsBookingOpen(false);
+                        navigate('/bookings/my');
+                    }}
+                />
+            )}
         </div>
     );
 };
