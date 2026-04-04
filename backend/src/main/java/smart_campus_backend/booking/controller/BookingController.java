@@ -13,6 +13,7 @@ import smart_campus_backend.auth.repository.UserRepository;
 import smart_campus_backend.booking.dto.BookingRequest;
 import smart_campus_backend.booking.dto.BookingResponse;
 import smart_campus_backend.booking.dto.RejectBookingRequest;
+import smart_campus_backend.booking.entity.BookingAudit;
 import smart_campus_backend.booking.service.BookingService;
 
 import java.util.List;
@@ -68,6 +69,12 @@ public class BookingController {
             @AuthenticationPrincipal UserDetails userDetails) {
         User user = getUserByEmail(userDetails.getUsername());
         return ResponseEntity.ok(bookingService.cancelBooking(id, user));
+    }
+
+    @GetMapping("/{id}/history")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<List<BookingAudit>> getBookingHistory(@PathVariable Long id) {
+        return ResponseEntity.ok(bookingService.getBookingHistory(id));
     }
 
     private User getUserByEmail(String email) {

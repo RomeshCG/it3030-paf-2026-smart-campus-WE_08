@@ -9,11 +9,17 @@ import smart_campus_backend.booking.dto.BookingRequest;
 import smart_campus_backend.booking.dto.BookingResponse;
 import smart_campus_backend.booking.entity.Booking;
 import smart_campus_backend.booking.entity.BookingStatus;
+import smart_campus_backend.booking.entity.BookingAudit;
+import smart_campus_backend.booking.repository.BookingAuditRepository;
 import smart_campus_backend.booking.repository.BookingRepository;
 import smart_campus_backend.exception.BookingConflictException;
+import smart_campus_backend.notification.service.NotificationService;
 import smart_campus_backend.resource.entity.CampusResource;
 import smart_campus_backend.resource.repository.CampusResourceRepository;
 
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -24,6 +30,8 @@ public class BookingService {
 
     private final BookingRepository bookingRepository;
     private final CampusResourceRepository resourceRepository;
+    private final BookingAuditRepository auditRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public BookingResponse createBooking(BookingRequest request, User user) {
@@ -48,7 +56,12 @@ public class BookingService {
         );
 
         if (hasConflict) {
-            throw new BookingConflictException("The resource is already booked for the selected time slot");
+            List<String> suggestions = suggestAvailableSlots(request.getResourceId(), request.getDate(), request.getEndTime());
+            String message = "The resource is already booked for the selected time slot. ";
+            if (!suggestions.isEmpty()) {
+                message += "Recommended slots: " + String.join(", ", suggestions);
+            }
+            throw new BookingConflictException(message);
         }
 
         // 4. Create and Save
@@ -63,7 +76,36 @@ public class BookingService {
                 .status(BookingStatus.PENDING)
                 .build();
 
-        return mapToResponse(bookingRepository.save(booking));
+        Booking saved = bookingRepository.save(booking);
+        createAuditLog(saved, "CREATED", user.getName());
+        return mapToResponse(saved);
+    }
+
+    private List<String> suggestAvailableSlots(Long resourceId, java.time.LocalDate date, LocalTime startTime) {
+        List<String> suggestions = new ArrayList<>();
+        LocalTime current = startTime;
+        List<BookingStatus> activeStatuses = Arrays.asList(BookingStatus.PENDING, BookingStatus.APPROVED);
+
+        while (suggestions.size() < 3 && current.isBefore(LocalTime.of(22, 0))) {
+            LocalTime potentialEnd = current.plusHours(1);
+            boolean hasConflict = bookingRepository.existsOverlappingBooking(resourceId, date, current, potentialEnd, activeStatuses);
+            if (!hasConflict) {
+                suggestions.add(current + " - " + potentialEnd);
+            }
+            current = current.plusHours(1);
+        }
+        return suggestions;
+    }
+
+    private void createAuditLog(Booking booking, String action, String performedBy) {
+        BookingAudit audit = BookingAudit.builder()
+                .booking(booking)
+                .status(booking.getStatus())
+                .action(action)
+                .performedBy(performedBy)
+                .timestamp(LocalDateTime.now())
+                .build();
+        auditRepository.save(audit);
     }
 
     public List<BookingResponse> getMyBookings(User user) {
@@ -94,7 +136,10 @@ public class BookingService {
         }
 
         booking.setStatus(BookingStatus.APPROVED);
-        return mapToResponse(bookingRepository.save(booking));
+        Booking saved = bookingRepository.save(booking);
+        createAuditLog(saved, "APPROVED", "ADMIN");
+        notificationService.createNotification(booking.getUser(), "Your booking for " + booking.getResource().getName() + " on " + booking.getDate() + " has been APPROVED.");
+        return mapToResponse(saved);
     }
 
     @Transactional
@@ -108,7 +153,10 @@ public class BookingService {
 
         booking.setStatus(BookingStatus.REJECTED);
         booking.setRejectionReason(reason);
-        return mapToResponse(bookingRepository.save(booking));
+        Booking saved = bookingRepository.save(booking);
+        createAuditLog(saved, "REJECTED", "ADMIN");
+        notificationService.createNotification(booking.getUser(), "Your booking for " + booking.getResource().getName() + " on " + booking.getDate() + " has been REJECTED. Reason: " + reason);
+        return mapToResponse(saved);
     }
 
     @Transactional
@@ -126,7 +174,13 @@ public class BookingService {
         }
 
         booking.setStatus(BookingStatus.CANCELLED);
-        return mapToResponse(bookingRepository.save(booking));
+        Booking saved = bookingRepository.save(booking);
+        createAuditLog(saved, "CANCELLED", user.getName());
+        return mapToResponse(saved);
+    }
+
+    public List<BookingAudit> getBookingHistory(Long id) {
+        return auditRepository.findByBookingIdOrderByTimestampDesc(id);
     }
 
     private BookingResponse mapToResponse(Booking booking) {
