@@ -21,13 +21,19 @@ public class BookingAnalyticsService {
         List<Object[]> resourceResults = bookingRepository.countBookingsByResource();
         Map<String, Long> resourceUsage = new HashMap<>();
         for (Object[] res : resourceResults) {
-            resourceUsage.put((String) res[0], (Long) res[1]);
+            String name = res[0] != null ? res[0].toString() : "Unknown";
+            long count = res[1] instanceof Number ? ((Number) res[1]).longValue() : 0L;
+            resourceUsage.put(name, count);
         }
 
         List<Object[]> hourResults = bookingRepository.countBookingsByHour();
         Map<Integer, Long> hourUsage = new HashMap<>();
         for (Object[] hr : hourResults) {
-            hourUsage.put((Integer) hr[0], (Long) hr[1]);
+            if (hr[0] != null) {
+                int hour = hr[0] instanceof Number ? ((Number) hr[0]).intValue() : 0;
+                long count = hr[1] instanceof Number ? ((Number) hr[1]).longValue() : 0L;
+                hourUsage.put(hour, count);
+            }
         }
 
         return BookingAnalyticsResponse.builder()
