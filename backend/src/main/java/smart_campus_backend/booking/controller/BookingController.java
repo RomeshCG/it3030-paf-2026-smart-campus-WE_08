@@ -27,7 +27,6 @@ public class BookingController {
     private final UserRepository userRepository;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<BookingResponse> createBooking(
             @Valid @RequestBody BookingRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -62,7 +61,6 @@ public class BookingController {
     }
 
     @PutMapping("/{id}/cancel")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<BookingResponse> cancelBooking(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {
