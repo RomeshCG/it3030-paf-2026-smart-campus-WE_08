@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
+import smart_campus_backend.auth.entity.User;
+import smart_campus_backend.auth.repository.UserRepository;
 import smart_campus_backend.resource.entity.CampusResource;
 import smart_campus_backend.resource.entity.ResourceStatus;
 import smart_campus_backend.resource.entity.ResourceType;
@@ -17,10 +19,36 @@ import java.util.List;
 public class ResourceDataInitializer implements CommandLineRunner {
 
     private final CampusResourceRepository repo;
+    private final UserRepository userRepository;
 
     @Override
     public void run(String... args) {
-        if (repo.count() > 0) return; // Skip if already seeded
+        seedUsers();
+        seedResources();
+    }
+
+    private void seedUsers() {
+        if (userRepository.count() > 0) return;
+
+        User admin = User.builder()
+                .name("Campus Admin")
+                .email("admin@smartcampus.lk")
+                .password("$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xd00DMxs.7uCyQfS") // password: password
+                .role("ROLE_ADMIN")
+                .build();
+
+        User user = User.builder()
+                .name("John Doe")
+                .email("john_doe@gmail.com")
+                .password("$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xd00DMxs.7uCyQfS") // password: password
+                .role("ROLE_USER")
+                .build();
+
+        userRepository.saveAll(List.of(admin, user));
+        log.info("✅ Seeded default Admin and User for demo");
+    }
+
+    private void seedResources() {
 
         List<CampusResource> resources = List.of(
             CampusResource.builder()
