@@ -36,6 +36,6 @@ export const getBookingHistory = async (id) => {
 };
 
 export const getBookingAnalytics = async () => {
-    const { data } = await api.get('/api/analytics/bookings');
+    const { data } = await api.get('/api/analytics/bookings/bookings');
     return data;
 };
