@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
+import smart_campus_backend.auth.entity.Role;
 import smart_campus_backend.auth.entity.User;
 import smart_campus_backend.auth.repository.UserRepository;
 import smart_campus_backend.resource.entity.CampusResource;
@@ -34,14 +35,14 @@ public class ResourceDataInitializer implements CommandLineRunner {
                 .name("Campus Admin")
                 .email("admin@smartcampus.lk")
                 .password("$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xd00DMxs.7uCyQfS") // password: password
-                .role("ROLE_ADMIN")
+                .role(Role.ADMIN)
                 .build();
 
         User user = User.builder()
                 .name("John Doe")
                 .email("john_doe@gmail.com")
                 .password("$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xd00DMxs.7uCyQfS") // password: password
-                .role("ROLE_USER")
+                .role(Role.USER)
                 .build();
 
         userRepository.saveAll(List.of(admin, user));

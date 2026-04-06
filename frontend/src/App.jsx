@@ -1,47 +1,57 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { ResourceList } from './components/ResourceList';
 import { ResourceDetails } from './components/ResourceDetails';
 import { Navbar } from './components/Navbar';
+import ProtectedRoute from './components/ProtectedRoute';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import DashboardPage from './pages/DashboardPage';
 import { MyBookingsPage } from './pages/MyBookingsPage';
 import { AdminAnalyticsDashboard } from './pages/AdminAnalyticsDashboard';
 import { AdminBookingPage } from './pages/AdminBookingPage';
-import { Toaster } from 'react-hot-toast';
+import './App.css';
 import './index.css';
+
+function AppLayout({ children }) {
+  return (
+    <div className="App legacy-module">
+      <Navbar />
+      <main>{children}</main>
+    </div>
+  );
+}
 
 function App() {
   return (
-    <Router>
-      <div className="App">
-        <Navbar />
-        <Toaster 
-          position="top-right" 
-          toastOptions={{
-            style: {
-              background: 'var(--bg-secondary)',
-              color: 'var(--text-primary)',
-              border: '1px solid var(--border-color)',
-            },
-            success: {
-              iconTheme: {
-                primary: 'var(--success)',
-                secondary: 'white',
-              },
-            },
-            error: {
-              iconTheme: {
-                primary: 'var(--danger)',
-                secondary: 'white',
-              },
-            },
-          }} 
     <BrowserRouter>
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          style: {
+            background: 'var(--bg-secondary)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border-color)',
+          },
+          success: {
+            iconTheme: {
+              primary: 'var(--success)',
+              secondary: 'white',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: 'var(--danger)',
+              secondary: 'white',
+            },
+          },
+        }}
+      />
+
       <Routes>
-        {/* Public routes */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/onboarding/invite/:token" element={<RegisterPage />} />
-
-        {/* Protected routes */}
         <Route
           path="/dashboard"
           element={
@@ -50,17 +60,16 @@ function App() {
             </ProtectedRoute>
           }
         />
-        <main>
-          <Routes>
-            <Route path="/" element={<ResourceList />} />
-            <Route path="/resources/:id" element={<ResourceDetails />} />
-            <Route path="/bookings/my" element={<MyBookingsPage />} />
-            <Route path="/admin/analytics" element={<AdminAnalyticsDashboard />} />
-            <Route path="/admin/bookings" element={<AdminBookingPage />} />
-          </Routes>
-        </main>
-      </div>
-    </Router>
+
+        <Route path="/" element={<AppLayout><ResourceList /></AppLayout>} />
+        <Route path="/resources/:id" element={<AppLayout><ResourceDetails /></AppLayout>} />
+        <Route path="/bookings/my" element={<AppLayout><MyBookingsPage /></AppLayout>} />
+        <Route path="/admin/analytics" element={<AppLayout><AdminAnalyticsDashboard /></AppLayout>} />
+        <Route path="/admin/bookings" element={<AppLayout><AdminBookingPage /></AppLayout>} />
+
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
