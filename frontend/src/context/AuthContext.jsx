@@ -2,24 +2,40 @@ import { createContext, useContext, useState, useCallback } from 'react';
 import api from '../lib/api';
 
 const AuthContext = createContext(null);
+const normalizeRole = (role) => String(role || 'USER').replace(/^ROLE_/, '');
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     const stored = localStorage.getItem('user');
-    return stored ? JSON.parse(stored) : null;
+    if (!stored) return null;
+    const parsed = JSON.parse(stored);
+    return { ...parsed, role: normalizeRole(parsed.role) };
   });
 
   const [token, setToken] = useState(() => localStorage.getItem('token'));
 
   const saveSession = useCallback((data) => {
+    const normalizedRole = normalizeRole(data.role);
     localStorage.setItem('token', data.token);
-    localStorage.setItem('user', JSON.stringify({ name: data.name, email: data.email, role: data.role }));
+    localStorage.setItem('user', JSON.stringify({ name: data.name, email: data.email, role: normalizedRole }));
     setToken(data.token);
-    setUser({ name: data.name, email: data.email, role: data.role });
+    setUser({ name: data.name, email: data.email, role: normalizedRole });
+  }, []);
+
+  const syncSessionUser = useCallback((data) => {
+    const normalizedRole = normalizeRole(data.role);
+    localStorage.setItem('user', JSON.stringify({ name: data.name, email: data.email, role: normalizedRole }));
+    setUser({ name: data.name, email: data.email, role: normalizedRole });
   }, []);
 
   const register = useCallback(async (name, email, password) => {
     const res = await api.post('/api/auth/register', { name, email, password });
+    saveSession(res.data);
+    return res.data;
+  }, [saveSession]);
+
+  const registerWithInvite = useCallback(async (token, name, email, password) => {
+    const res = await api.post('/api/auth/register-invite', { token, name, email, password });
     saveSession(res.data);
     return res.data;
   }, [saveSession]);
@@ -44,7 +60,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, token, register, login, loginWithGoogle, logout }}>
+    <AuthContext.Provider value={{ user, token, register, registerWithInvite, login, loginWithGoogle, logout, syncSessionUser }}>
       {children}
     </AuthContext.Provider>
   );

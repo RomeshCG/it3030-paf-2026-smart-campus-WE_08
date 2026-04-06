@@ -34,6 +34,21 @@ function App() {
               },
             },
           }} 
+    <BrowserRouter>
+      <Routes>
+        {/* Public routes */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/onboarding/invite/:token" element={<RegisterPage />} />
+
+        {/* Protected routes */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['USER', 'ADMIN', 'TECHNICIAN', 'SUPER_ADMIN']}>
+              <DashboardPage />
+            </ProtectedRoute>
+          }
         />
         <main>
           <Routes>

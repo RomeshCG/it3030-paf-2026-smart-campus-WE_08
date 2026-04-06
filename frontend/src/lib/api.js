@@ -13,4 +13,44 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+const AUTH_ENDPOINTS = [
+  '/api/auth/login',
+  '/api/auth/register',
+  '/api/auth/register-invite',
+  '/api/auth/google',
+];
+
+const toFriendlyAuthMessage = (serverMessage) => {
+  const normalized = String(serverMessage || '').toLowerCase();
+  if (normalized.includes('disabled') || normalized.includes('banned')) {
+    return 'Your account has been banned. Please contact support.';
+  }
+  if (normalized.includes('not found') || normalized.includes('deleted')) {
+    return 'Your account no longer exists. Please contact support.';
+  }
+  return 'Your session is no longer valid. Please log in again.';
+};
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status;
+    const requestUrl = String(error?.config?.url || '');
+    const hasSession = Boolean(localStorage.getItem('token'));
+    const isAuthRequest = AUTH_ENDPOINTS.some((path) => requestUrl.includes(path));
+
+    if (hasSession && !isAuthRequest && (status === 401 || status === 403)) {
+      const serverMessage = error?.response?.data?.message;
+      sessionStorage.setItem('auth_notice', toFriendlyAuthMessage(serverMessage));
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      if (window.location.pathname !== '/login') {
+        window.location.assign('/login');
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 export default api;

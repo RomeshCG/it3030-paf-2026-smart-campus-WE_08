@@ -51,6 +51,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/notifications/**").permitAll()
                         .requestMatchers("/api/analytics/**").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
+                        .requestMatchers("/api/auth/register", "/api/auth/register-invite", "/api/auth/login", "/api/auth/google").permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("SUPER_ADMIN")
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())

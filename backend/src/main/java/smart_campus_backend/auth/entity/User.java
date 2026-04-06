@@ -29,12 +29,17 @@ public class User {
 
     @Column(nullable = false)
     @Builder.Default
-    private String role = "ROLE_USER";
+    @Convert(converter = RoleConverter.class)
+    private Role role = Role.USER;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
     private AuthProvider provider = AuthProvider.LOCAL;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean enabled = true;
 
     // Stores the Google sub (subject) ID for OAuth users
     private String providerId;
