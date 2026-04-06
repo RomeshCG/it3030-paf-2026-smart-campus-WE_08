@@ -7,20 +7,28 @@ import com.google.api.client.json.gson.GsonFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import smart_campus_backend.auth.dto.AuthResponse;
+import smart_campus_backend.auth.dto.CurrentUserResponse;
+import smart_campus_backend.auth.dto.InviteRegisterRequest;
 import smart_campus_backend.auth.dto.LoginRequest;
 import smart_campus_backend.auth.dto.RegisterRequest;
+import smart_campus_backend.auth.entity.AdminInvite;
 import smart_campus_backend.auth.entity.AuthProvider;
+import smart_campus_backend.auth.entity.InviteStatus;
 import smart_campus_backend.auth.entity.Role;
 import smart_campus_backend.auth.entity.User;
+import smart_campus_backend.auth.repository.AdminInviteRepository;
 import smart_campus_backend.auth.repository.UserRepository;
 import smart_campus_backend.auth.security.CustomUserDetailsService;
 import smart_campus_backend.auth.security.JwtUtil;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 
 @Service
@@ -32,6 +40,7 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
     private final CustomUserDetailsService userDetailsService;
+    private final AdminInviteRepository adminInviteRepository;
 
     @Value("${google.client-id}")
     private String googleClientId;
@@ -64,14 +73,66 @@ public class AuthService {
                 .build();
     }
 
+    public AuthResponse registerWithInvite(InviteRegisterRequest request) {
+        String normalizedEmail = request.getEmail().trim().toLowerCase();
+        AdminInvite invite = adminInviteRepository.findByToken(request.getToken().trim())
+                .orElseThrow(() -> new RuntimeException("Invalid invite token"));
+
+        if (invite.getStatus() != InviteStatus.PENDING) {
+            throw new RuntimeException("Invite is not active");
+        }
+        if (invite.getExpiresAt().isBefore(LocalDateTime.now())) {
+            invite.setStatus(InviteStatus.EXPIRED);
+            adminInviteRepository.save(invite);
+            throw new RuntimeException("Invite has expired");
+        }
+        if (!invite.getEmail().equalsIgnoreCase(normalizedEmail)) {
+            throw new RuntimeException("This invite is issued for a different email");
+        }
+        if (userRepository.existsByEmail(normalizedEmail)) {
+            throw new RuntimeException("Email is already registered");
+        }
+
+        User user = User.builder()
+                .name(request.getName().trim())
+                .email(normalizedEmail)
+                .password(passwordEncoder.encode(request.getPassword()))
+                .provider(AuthProvider.LOCAL)
+                .role(invite.getTargetRole())
+                .build();
+        userRepository.save(user);
+
+        invite.setStatus(InviteStatus.USED);
+        adminInviteRepository.save(invite);
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
+        String token = jwtUtil.generateToken(userDetails);
+
+        return AuthResponse.builder()
+                .token(token)
+                .name(user.getName())
+                .email(user.getEmail())
+                .role(user.getRole().name())
+                .build();
+    }
+
     // ───── Email / Password Login ────────────────────────────────────────────
     public AuthResponse login(LoginRequest request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
-        );
+        String email = request.getEmail().trim().toLowerCase();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("No account found for this email"));
 
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        if (!user.isEnabled()) {
+            throw new RuntimeException("Your account has been banned. Please contact support.");
+        }
+
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(email, request.getPassword())
+            );
+        } catch (BadCredentialsException ex) {
+            throw new RuntimeException("Incorrect password");
+        }
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
         String token = jwtUtil.generateToken(userDetails);
@@ -131,6 +192,21 @@ public class AuthService {
         return AuthResponse.builder()
                 .token(token)
                 .userId(user.getId())
+                .name(user.getName())
+                .email(user.getEmail())
+                .role(user.getRole().name())
+                .build();
+    }
+
+    public CurrentUserResponse currentUser(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        if (!user.isEnabled()) {
+            throw new RuntimeException("User is disabled");
+        }
+
+        return CurrentUserResponse.builder()
                 .name(user.getName())
                 .email(user.getEmail())
                 .role(user.getRole().name())

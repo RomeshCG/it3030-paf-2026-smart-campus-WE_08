@@ -9,6 +9,7 @@ import smart_campus_backend.auth.entity.AdminInvite;
 import smart_campus_backend.auth.entity.InviteStatus;
 import smart_campus_backend.auth.entity.Role;
 import smart_campus_backend.auth.repository.AdminInviteRepository;
+import smart_campus_backend.mail.InviteEmailService;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -19,6 +20,7 @@ import java.util.UUID;
 public class AdminInviteService {
 
     private final AdminInviteRepository adminInviteRepository;
+    private final InviteEmailService inviteEmailService;
 
     @Value("${app.invites.base-url:http://localhost:5173}")
     private String inviteBaseUrl;
@@ -38,7 +40,13 @@ public class AdminInviteService {
                 .build();
 
         AdminInvite saved = adminInviteRepository.save(invite);
-        return toResponse(saved);
+        AdminInviteResponse response = toResponse(saved);
+        inviteEmailService.sendAdminInvite(
+                saved.getEmail(),
+                response.getInviteUrl(),
+                saved.getTargetRole().name(),
+                inviteExpirationHours);
+        return response;
     }
 
     public List<AdminInviteResponse> listInvites() {

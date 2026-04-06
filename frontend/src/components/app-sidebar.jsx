@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from 'react';
 import { SearchForm } from '@/components/search-form';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Sidebar,
   SidebarContent,
@@ -11,14 +13,20 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarRail,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
 import {
   BookOpen,
+  ChevronDown,
+  ChevronRight,
   GraduationCap,
   LayoutDashboard,
   LifeBuoy,
+  MailPlus,
   LogOut,
   Settings,
   ShieldCheck,
@@ -46,6 +54,11 @@ const SUPER_ADMIN_NAV = [
     icon: ShieldCheck,
   },
   {
+    key: 'admin-invites',
+    label: 'Admin Invites',
+    icon: MailPlus,
+  },
+  {
     key: 'super-admin-management',
     label: 'Super Admin Management',
     icon: ShieldUser,
@@ -61,6 +74,7 @@ export function AppSidebar({
   ...props
 }) {
   const navItems = role === 'SUPER_ADMIN' ? SUPER_ADMIN_NAV : CORE_NAV;
+  const [isUserManagementOpen, setIsUserManagementOpen] = useState(true);
   const serviceItems = role === 'TECHNICIAN'
     ? [{ key: 'technician', label: 'Technician', icon: Wrench }]
     : role === 'ADMIN'
@@ -101,21 +115,57 @@ export function AppSidebar({
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-          <SidebarMenu>
-            {navItems.map((item) => (
-              <SidebarMenuItem key={item.key}>
-                <SidebarMenuButton
-                  isActive={activeNav === item.key}
-                  tooltip={item.label}
-                  onClick={() => handleNav(item.key)}
-                >
-                  <item.icon />
-                  <span>{item.label}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
+          {role === 'SUPER_ADMIN' ? (
+            <>
+              <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <Collapsible open={isUserManagementOpen} onOpenChange={setIsUserManagementOpen}>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton tooltip="User Management">
+                        <Users />
+                        <span>User Management</span>
+                        {isUserManagementOpen ? <ChevronDown className="ml-auto size-4" /> : <ChevronRight className="ml-auto size-4" />}
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {navItems.map((item) => (
+                          <SidebarMenuSubItem key={item.key}>
+                            <SidebarMenuSubButton
+                              isActive={activeNav === item.key}
+                              onClick={() => handleNav(item.key)}
+                            >
+                              <item.icon />
+                              <span>{item.label}</span>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </>
+          ) : (
+            <>
+              <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+              <SidebarMenu>
+                {navItems.map((item) => (
+                  <SidebarMenuItem key={item.key}>
+                    <SidebarMenuButton
+                      isActive={activeNav === item.key}
+                      tooltip={item.label}
+                      onClick={() => handleNav(item.key)}
+                    >
+                      <item.icon />
+                      <span>{item.label}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </>
+          )}
         </SidebarGroup>
 
         {serviceItems.length > 0 ? (

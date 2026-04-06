@@ -40,8 +40,20 @@ export function AuthProvider({ children }) {
     setUser(userPayload);
   }, []);
 
+  const syncSessionUser = useCallback((data) => {
+    const normalizedRole = normalizeRole(data.role);
+    localStorage.setItem('user', JSON.stringify({ name: data.name, email: data.email, role: normalizedRole }));
+    setUser({ name: data.name, email: data.email, role: normalizedRole });
+  }, []);
+
   const register = useCallback(async (name, email, password) => {
     const res = await api.post('/api/auth/register', { name, email, password });
+    saveSession(res.data);
+    return res.data;
+  }, [saveSession]);
+
+  const registerWithInvite = useCallback(async (token, name, email, password) => {
+    const res = await api.post('/api/auth/register-invite', { token, name, email, password });
     saveSession(res.data);
     return res.data;
   }, [saveSession]);
@@ -66,7 +78,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, token, register, login, loginWithGoogle, logout }}>
+    <AuthContext.Provider value={{ user, token, register, registerWithInvite, login, loginWithGoogle, logout, syncSessionUser }}>
       {children}
     </AuthContext.Provider>
   );
