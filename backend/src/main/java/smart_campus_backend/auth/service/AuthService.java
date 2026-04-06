@@ -59,13 +59,14 @@ public class AuthService {
                 .role(Role.USER)
                 .build();
 
-        userRepository.save(user);
+        user = userRepository.save(user);
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
         String token = jwtUtil.generateToken(userDetails);
 
         return AuthResponse.builder()
                 .token(token)
+                .userId(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
                 .role(user.getRole().name())
@@ -138,6 +139,7 @@ public class AuthService {
 
         return AuthResponse.builder()
                 .token(token)
+                .userId(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
                 .role(user.getRole().name())
@@ -189,6 +191,7 @@ public class AuthService {
 
         return AuthResponse.builder()
                 .token(token)
+                .userId(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
                 .role(user.getRole().name())

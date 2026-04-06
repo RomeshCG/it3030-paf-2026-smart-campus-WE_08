@@ -20,7 +20,6 @@ import {
   SidebarSeparator,
 } from '@/components/ui/sidebar';
 import {
-  BookUser,
   BookOpen,
   ChevronDown,
   ChevronRight,
@@ -43,6 +42,7 @@ const CORE_NAV = [
 ];
 
 const SUPER_ADMIN_NAV = [
+  { key: 'tickets', label: 'Tickets', icon: LifeBuoy },
   {
     key: 'user-management',
     label: 'User Management',

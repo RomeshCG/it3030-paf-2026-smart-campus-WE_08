@@ -106,7 +106,7 @@ public class AdminUserManagementService {
                 .id(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
-                .role(user.getRole().name())
+                .role(user.getRole() == null ? Role.USER.name() : user.getRole().name())
                 .enabled(user.isEnabled())
                 .build();
     }

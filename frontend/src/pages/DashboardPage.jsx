@@ -121,6 +121,18 @@ export default function DashboardPage() {
     navigate('/login');
   };
 
+  const handleNavigate = (key) => {
+    if (key === 'tickets') {
+      navigate(user?.role === 'USER' ? '/tickets/my' : '/tickets/manage');
+      return;
+    }
+    if (key === 'bookings') {
+      setActivePage('bookings');
+      return;
+    }
+    setActivePage(key);
+  };
+
   const handleBanToggle = async (target) => {
     try {
       await api.patch(`/api/admin/users/${target.id}/ban`, { banned: target.enabled });
@@ -163,7 +175,7 @@ export default function DashboardPage() {
       <AppSidebar
         role={role}
         activeNav={activePage}
-        onNavigate={setActivePage}
+        onNavigate={handleNavigate}
         onLogout={handleLogout}
         onSettings={() => setActivePage('settings')}
       />
@@ -178,6 +190,7 @@ export default function DashboardPage() {
             {activePage === 'admin-invites' && 'Admin Invites'}
             {activePage === 'settings' && 'System Settings'}
             {activePage === 'dashboard' && 'Dashboard'}
+            {activePage === 'bookings' && 'Bookings'}
             </h1>
           </div>
           <Button variant="ghost" size="icon" className="relative text-slate-500">
@@ -404,6 +417,13 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
             </>
+          ) : activePage === 'bookings' ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Bookings</CardTitle>
+                <CardDescription>Room and resource booking tools will appear here.</CardDescription>
+              </CardHeader>
+            </Card>
           ) : (
             <Card>
               <CardHeader>
