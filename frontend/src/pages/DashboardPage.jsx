@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
-import { Bell, MoreHorizontal } from 'lucide-react';
+import { Bell, Copy, MoreHorizontal } from 'lucide-react';
 
 const ROLE_OPTIONS = ['USER', 'ADMIN', 'TECHNICIAN', 'SUPER_ADMIN'];
 
@@ -27,12 +27,19 @@ export default function DashboardPage() {
   const [roleFilter, setRoleFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
 
+  const [invites, setInvites] = useState([]);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteError, setInviteError] = useState('');
+  const [inviteSubmitting, setInviteSubmitting] = useState(false);
+  const [copiedInviteId, setCopiedInviteId] = useState(null);
+
   useEffect(() => {
     if (!isSuperAdmin) {
       setActivePage('dashboard');
       return;
     }
-    if (!['user-management', 'admin-management', 'super-admin-management', 'settings'].includes(activePage)) {
+    if (!['user-management', 'admin-management', 'super-admin-management', 'admin-invites', 'settings'].includes(activePage)) {
       setActivePage('user-management');
     }
   }, [activePage, isSuperAdmin]);
@@ -43,6 +50,51 @@ export default function DashboardPage() {
     fetchUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSuperAdmin, activePage, search, roleFilter, statusFilter]);
+
+  useEffect(() => {
+    if (!isSuperAdmin || activePage !== 'admin-invites') return;
+    fetchInvites();
+  }, [isSuperAdmin, activePage]);
+
+  const fetchInvites = async () => {
+    setInviteLoading(true);
+    setInviteError('');
+    try {
+      const response = await api.get('/api/admin/invites');
+      setInvites(response.data ?? []);
+    } catch (err) {
+      setInviteError(err?.response?.data?.message || 'Failed to load invites');
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
+  const handleCreateInvite = async (event) => {
+    event.preventDefault();
+    const email = inviteEmail.trim();
+    if (!email) return;
+    setInviteSubmitting(true);
+    setInviteError('');
+    try {
+      await api.post('/api/admin/invites', { email });
+      setInviteEmail('');
+      await fetchInvites();
+    } catch (err) {
+      setInviteError(err?.response?.data?.message || 'Failed to create invite');
+    } finally {
+      setInviteSubmitting(false);
+    }
+  };
+
+  const copyInviteLink = async (id, url) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedInviteId(id);
+      setTimeout(() => setCopiedInviteId(null), 2000);
+    } catch {
+      alert('Could not copy to clipboard');
+    }
+  };
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -123,6 +175,7 @@ export default function DashboardPage() {
             {activePage === 'user-management' && 'User Management'}
             {activePage === 'admin-management' && 'Admin Management'}
             {activePage === 'super-admin-management' && 'Super Admin Management'}
+            {activePage === 'admin-invites' && 'Admin Invites'}
             {activePage === 'settings' && 'System Settings'}
             {activePage === 'dashboard' && 'Dashboard'}
             </h1>
@@ -140,6 +193,112 @@ export default function DashboardPage() {
                 <CardDescription>Future configuration area for global system controls.</CardDescription>
               </CardHeader>
             </Card>
+          ) : isSuperAdmin && activePage === 'admin-invites' ? (
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Invite a new admin</CardTitle>
+                  <CardDescription>
+                    Sends an email with the signup link (if Gmail SMTP is configured). You can also copy the link below after creating an invite.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleCreateInvite} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                    <div className="flex-1 space-y-2">
+                      <label htmlFor="invite-email" className="text-sm font-medium">
+                        Email
+                      </label>
+                      <Input
+                        id="invite-email"
+                        type="email"
+                        autoComplete="email"
+                        placeholder="future.admin@university.edu"
+                        value={inviteEmail}
+                        onChange={(e) => setInviteEmail(e.target.value)}
+                        disabled={inviteSubmitting}
+                      />
+                    </div>
+                    <Button type="submit" disabled={inviteSubmitting || !inviteEmail.trim()}>
+                      {inviteSubmitting ? 'Sending…' : 'Create invite'}
+                    </Button>
+                  </form>
+                  {inviteError && <p className="mt-3 text-sm text-destructive">{inviteError}</p>}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Pending and past invites</CardTitle>
+                  <CardDescription>Status and invite links for onboarding.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {inviteLoading ? (
+                    <p className="text-sm text-slate-500">Loading invites…</p>
+                  ) : (
+                    <table className="w-full border-collapse text-left text-sm">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="py-2">Email</th>
+                          <th className="py-2">Role</th>
+                          <th className="py-2">Status</th>
+                          <th className="py-2">Expires</th>
+                          <th className="py-2">Link</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {invites.length === 0 ? (
+                          <tr>
+                            <td colSpan={5} className="py-6 text-center text-slate-500">
+                              No invites yet. Create one above.
+                            </td>
+                          </tr>
+                        ) : (
+                          invites.map((inv) => (
+                            <tr key={inv.id} className="border-b border-slate-100 dark:border-slate-800">
+                              <td className="py-2">{inv.email}</td>
+                              <td className="py-2">
+                                <Badge variant="outline">{inv.targetRole}</Badge>
+                              </td>
+                              <td className="py-2">
+                                <Badge variant={inv.status === 'PENDING' ? 'secondary' : 'outline'}>{inv.status}</Badge>
+                              </td>
+                              <td className="py-2 text-xs text-slate-600">
+                                {inv.expiresAt
+                                  ? new Date(inv.expiresAt).toLocaleString(undefined, {
+                                      dateStyle: 'medium',
+                                      timeStyle: 'short',
+                                    })
+                                  : '—'}
+                              </td>
+                              <td className="py-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="max-w-[180px] truncate font-mono text-xs text-slate-600" title={inv.inviteUrl}>
+                                    {inv.inviteUrl}
+                                  </span>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    className="shrink-0"
+                                    onClick={() => copyInviteLink(inv.id, inv.inviteUrl)}
+                                    title="Copy link"
+                                  >
+                                    <Copy className="size-4" />
+                                  </Button>
+                                  {copiedInviteId === inv.id && (
+                                    <span className="text-xs text-emerald-600">Copied</span>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           ) : isSuperAdmin && ['user-management', 'admin-management', 'super-admin-management'].includes(activePage) ? (
             <>
               {activePage === 'user-management' && (

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,8 +9,9 @@ import { GraduationCap, Mail, Lock, User, Loader2, AlertCircle, ArrowRight } fro
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function RegisterPage() {
-  const { register } = useAuth();
+  const { register, registerWithInvite } = useAuth();
   const navigate = useNavigate();
+  const { token: inviteToken } = useParams();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -32,7 +33,11 @@ export default function RegisterPage() {
     }
     setLoading(true);
     try {
-      await register(name, email, password);
+      if (inviteToken) {
+        await registerWithInvite(inviteToken, name, email, password);
+      } else {
+        await register(name, email, password);
+      }
       navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed. Please try again.');
@@ -79,9 +84,11 @@ export default function RegisterPage() {
                 <GraduationCap className="size-8 text-white" />
               </div>
             </div>
-            <CardTitle className="text-2xl font-bold text-center">Create account</CardTitle>
+            <CardTitle className="text-2xl font-bold text-center">
+              {inviteToken ? 'Accept admin invite' : 'Create account'}
+            </CardTitle>
             <CardDescription className="text-center text-slate-500">
-              Join the Smart Campus community today
+              {inviteToken ? 'Complete signup to join as an invited admin' : 'Join the Smart Campus community today'}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
