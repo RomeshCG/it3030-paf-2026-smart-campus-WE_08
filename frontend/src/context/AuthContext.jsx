@@ -42,8 +42,17 @@ export function AuthProvider({ children }) {
 
   const syncSessionUser = useCallback((data) => {
     const normalizedRole = normalizeRole(data.role);
-    localStorage.setItem('user', JSON.stringify({ name: data.name, email: data.email, role: normalizedRole }));
-    setUser({ name: data.name, email: data.email, role: normalizedRole });
+    const stored = localStorage.getItem('user');
+    const parsed = stored ? JSON.parse(stored) : {};
+    const currentId = Number.isFinite(Number(parsed.id)) ? Number(parsed.id) : undefined;
+    const userPayload = {
+      name: data.name,
+      email: data.email,
+      role: normalizedRole,
+      ...(currentId != null ? { id: currentId } : {}),
+    };
+    localStorage.setItem('user', JSON.stringify(userPayload));
+    setUser(userPayload);
   }, []);
 
   const register = useCallback(async (name, email, password) => {

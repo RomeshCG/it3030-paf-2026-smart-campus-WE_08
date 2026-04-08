@@ -48,7 +48,7 @@ export const ResourceList = () => {
         size,
         type: typeFilter || undefined,
         status: statusFilter || undefined,
-        capacity: capacityFilter || undefined,
+        minCapacity: capacityFilter || undefined,
         name: searchFilter || undefined
       });
       setResources(data.content || []);

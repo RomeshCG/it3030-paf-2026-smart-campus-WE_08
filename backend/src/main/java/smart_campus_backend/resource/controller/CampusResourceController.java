@@ -2,6 +2,7 @@ package smart_campus_backend.resource.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import smart_campus_backend.resource.dto.DashboardStats;
 import smart_campus_backend.resource.dto.ResourceDTO;
@@ -19,6 +20,7 @@ public class CampusResourceController {
     private final CampusResourceService service;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('USER', 'TECHNICIAN', 'ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<Map<String, Object>> getAll(
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String status,
@@ -44,26 +46,31 @@ public class CampusResourceController {
     }
 
     @GetMapping("/stats")
+    @PreAuthorize("hasAnyRole('USER', 'TECHNICIAN', 'ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<DashboardStats> getStats() {
         return ResponseEntity.ok(service.getStats());
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('USER', 'TECHNICIAN', 'ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<ResourceDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(service.getById(id));
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<ResourceDTO> create(@RequestBody ResourceDTO dto) {
         return ResponseEntity.ok(service.create(dto));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<ResourceDTO> update(@PathVariable Long id, @RequestBody ResourceDTO dto) {
         return ResponseEntity.ok(service.update(id, dto));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         service.delete(id);
         return ResponseEntity.noContent().build();

@@ -17,6 +17,7 @@ public class BookingAnalyticsController {
     private final BookingAnalyticsService analyticsService;
 
     @GetMapping("/bookings")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<BookingAnalyticsResponse> getBookingAnalytics() {
         return ResponseEntity.ok(analyticsService.getBookingAnalytics());
     }

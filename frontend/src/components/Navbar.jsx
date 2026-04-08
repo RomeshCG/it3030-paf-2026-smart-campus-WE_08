@@ -2,9 +2,13 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { NotificationBell } from './NotificationBell';
 import { Layout, Calendar, BarChart3, Shield } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { ADMIN_ROLES } from '../constants/roles';
 
 export const Navbar = () => {
     const location = useLocation();
+    const { user } = useAuth();
+    const isAdmin = ADMIN_ROLES.includes(user?.role);
 
     return (
         <nav className="glass-panel" style={{ 
@@ -31,12 +35,16 @@ export const Navbar = () => {
                     <NavLink to="/bookings/my" active={location.pathname === '/bookings/my'}>
                         <Calendar size={18} /> My Bookings
                     </NavLink>
-                    <NavLink to="/admin/analytics" active={location.pathname === '/admin/analytics'}>
-                        <BarChart3 size={18} /> Analytics
-                    </NavLink>
-                    <NavLink to="/admin/bookings" active={location.pathname === '/admin/bookings'}>
-                        <Shield size={18} /> Manage Bookings
-                    </NavLink>
+                    {isAdmin && (
+                        <NavLink to="/admin/analytics" active={location.pathname === '/admin/analytics'}>
+                            <BarChart3 size={18} /> Analytics
+                        </NavLink>
+                    )}
+                    {isAdmin && (
+                        <NavLink to="/admin/bookings" active={location.pathname === '/admin/bookings'}>
+                            <Shield size={18} /> Manage Bookings
+                        </NavLink>
+                    )}
                 </div>
                 
                 <div style={{ width: '1px', height: '24px', background: 'var(--border-color)' }}></div>
