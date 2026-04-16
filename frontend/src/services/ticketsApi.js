@@ -16,6 +16,10 @@ export const ticketsApi = {
     return api.get('/api/tickets', { params });
   },
 
+  listTechnicians() {
+    return api.get('/api/tickets/technicians');
+  },
+
   getTicket(id) {
     return api.get(`/api/tickets/${id}`);
   },
@@ -57,6 +61,7 @@ export const ticketsApi = {
 
 export const TICKET_STATUS = ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED', 'REJECTED'];
 export const TICKET_PRIORITY = ['LOW', 'MEDIUM', 'HIGH'];
+export const TICKET_CONTACT_METHODS = ['EMAIL', 'PHONE', 'WHATSAPP', 'TEAMS', 'ANY'];
 export const TICKET_CATEGORY = [
   'HARDWARE',
   'SOFTWARE',

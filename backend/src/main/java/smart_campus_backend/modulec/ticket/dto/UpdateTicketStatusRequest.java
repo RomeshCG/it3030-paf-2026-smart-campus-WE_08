@@ -18,7 +18,7 @@ public class UpdateTicketStatusRequest {
     private TicketStatus status;
 
     /**
-     * Optional notes when moving to RESOLVED or CLOSED.
+     * Optional progress or resolution notes visible to ticket participants.
      */
     @Size(max = 4000)
     private String resolutionNotes;

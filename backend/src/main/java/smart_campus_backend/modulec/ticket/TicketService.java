@@ -6,6 +6,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.multipart.MultipartFile;
 import smart_campus_backend.modulec.ticket.dto.*;
 
+import java.util.List;
+
 public interface TicketService {
 
     TicketResponse createTicket(CreateTicketRequest request, Authentication authentication);
@@ -19,6 +21,8 @@ public interface TicketService {
     TicketResponse updateStatus(Long id, UpdateTicketStatusRequest request, Authentication authentication);
 
     TicketResponse assignTechnician(Long id, AssignTechnicianRequest request, Authentication authentication);
+
+    List<TechnicianOptionResponse> listAssignableTechnicians(Authentication authentication);
 
     TicketResponse rejectTicket(Long id, RejectTicketRequest request, Authentication authentication);
 

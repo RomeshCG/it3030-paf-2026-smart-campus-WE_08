@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { getApiErrorMessage } from '@/lib/getApiErrorMessage';
 import { ticketsApi, TICKET_STATUS } from '@/services/ticketsApi';
-import api from '@/lib/api';
 
 export default function AssignmentPanel({
   ticket,
@@ -30,7 +28,19 @@ export default function AssignmentPanel({
   }, [ticket?.status]);
 
   useEffect(() => {
-    if (role !== 'SUPER_ADMIN') {
+    setResolutionNotes(ticket?.resolutionNotes ?? '');
+  }, [ticket?.id, ticket?.resolutionNotes]);
+
+  useEffect(() => {
+    if (!ticket) {
+      setTechnicianId('');
+      return;
+    }
+    setTechnicianId(ticket.assignedTechnicianId ? String(ticket.assignedTechnicianId) : '');
+  }, [ticket?.id, ticket?.assignedTechnicianId]);
+
+  useEffect(() => {
+    if (!isAdminRole) {
       setTechnicians([]);
       return;
     }
@@ -38,7 +48,7 @@ export default function AssignmentPanel({
     (async () => {
       setLoadingTech(true);
       try {
-        const res = await api.get('/api/admin/users', { params: { role: 'TECHNICIAN', status: 'ACTIVE' } });
+        const res = await ticketsApi.listTechnicians();
         if (!cancelled) setTechnicians(res.data ?? []);
       } catch {
         if (!cancelled) setTechnicians([]);
@@ -49,7 +59,7 @@ export default function AssignmentPanel({
     return () => {
       cancelled = true;
     };
-  }, [role]);
+  }, [isAdminRole]);
 
   const run = async (fn) => {
     setActionError('');
@@ -86,51 +96,44 @@ export default function AssignmentPanel({
         {isAdminRole ? (
         <div className="space-y-2">
           <Label>Assign technician</Label>
-          {role === 'SUPER_ADMIN' && technicians.length > 0 ? (
-            <select
-              className="flex h-9 w-full max-w-md rounded-md border border-input bg-background px-3 py-1 text-sm"
-              value={technicianId}
-              onChange={(e) => setTechnicianId(e.target.value)}
-              disabled={disabled || busy || terminal}
-            >
-              <option value="">Select technician…</option>
-              {technicians.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name} ({u.email})
-                </option>
-              ))}
-            </select>
-          ) : (
-            <div className="flex max-w-md flex-col gap-2 sm:flex-row">
-              <Input
-                type="number"
-                min={1}
-                placeholder="Technician user ID"
-                value={technicianId}
-                onChange={(e) => setTechnicianId(e.target.value)}
-                disabled={disabled || busy || terminal}
-              />
-              {role === 'ADMIN' ? (
-                <p className="text-xs text-slate-500 sm:sr-only">
-                  Enter the technician&apos;s numeric user ID from your records.
-                </p>
-              ) : null}
-            </div>
-          )}
+          <p className="text-xs text-slate-500">
+            Current assignment: <span className="font-medium">{ticket.assignedTechnicianName || 'Unassigned'}</span>
+          </p>
+          <select
+            className="flex h-9 w-full max-w-md rounded-md border border-input bg-background px-3 py-1 text-sm"
+            value={technicianId}
+            onChange={(e) => setTechnicianId(e.target.value)}
+            disabled={disabled || busy || terminal || loadingTech || technicians.length === 0}
+          >
+            <option value="">
+              {loadingTech ? 'Loading technicians...' : technicians.length ? 'Select technician…' : 'No technicians available'}
+            </option>
+            {technicians.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name} ({u.email})
+              </option>
+            ))}
+          </select>
           {loadingTech ? <p className="text-xs text-slate-500">Loading technicians…</p> : null}
           <Button
             type="button"
-            disabled={disabled || busy || terminal || !technicianId}
+            disabled={
+              disabled ||
+              busy ||
+              terminal ||
+              !technicianId ||
+              technicians.length === 0 ||
+              String(ticket.assignedTechnicianId || '') === technicianId
+            }
             onClick={() =>
               run(async () => {
                 await ticketsApi.assignTechnician(ticket.id, {
                   technicianId: Number(technicianId),
                 });
-                setTechnicianId('');
               })
             }
           >
-            Assign
+            {ticket.assignedTechnicianId ? 'Reassign' : 'Assign'}
           </Button>
         </div>
         ) : null}
@@ -152,7 +155,7 @@ export default function AssignmentPanel({
           </select>
           <div>
             <Label htmlFor="st-notes" className="text-xs text-slate-600 dark:text-slate-400">
-              Resolution notes (optional, for Resolved / Closed)
+              Work / resolution notes (optional, visible to requester)
             </Label>
             <textarea
               id="st-notes"

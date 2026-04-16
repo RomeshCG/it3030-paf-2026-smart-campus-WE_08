@@ -29,10 +29,16 @@ public class TicketAttachment {
     private String fileName;
 
     /**
-     * Relative path under the configured upload root (safe for storage; not a public URL).
+     * Public URL for the stored attachment (Cloudinary secure URL).
      */
     @Column(nullable = false, length = 1024)
     private String filePath;
+
+    /**
+     * Cloudinary public ID, used to delete the remote asset safely.
+     */
+    @Column(length = 255)
+    private String cloudinaryPublicId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "uploaded_by_id", nullable = false)

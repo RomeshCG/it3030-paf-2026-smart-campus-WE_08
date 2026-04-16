@@ -8,6 +8,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import smart_campus_backend.modulec.ticket.TicketCategory;
+import smart_campus_backend.modulec.ticket.TicketContactMethod;
 import smart_campus_backend.modulec.ticket.TicketPriority;
 
 @Data
@@ -32,6 +33,8 @@ public class CreateTicketRequest {
 
     @Size(max = 500)
     private String preferredContactDetails;
+
+    private TicketContactMethod preferredContactMethod;
 
     @Size(max = 500)
     private String locationOrResource;

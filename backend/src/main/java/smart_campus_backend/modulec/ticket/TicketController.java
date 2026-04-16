@@ -56,6 +56,13 @@ public class TicketController {
         );
     }
 
+    @GetMapping("/technicians")
+    public ResponseEntity<java.util.List<TechnicianOptionResponse>> listAssignableTechnicians(
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(ticketService.listAssignableTechnicians(authentication));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<TicketResponse> getTicket(
             @PathVariable Long id,

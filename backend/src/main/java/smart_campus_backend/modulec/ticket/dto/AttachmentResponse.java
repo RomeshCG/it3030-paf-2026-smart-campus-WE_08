@@ -16,6 +16,7 @@ public class AttachmentResponse {
     private Long id;
     private String fileName;
     private String filePath;
+    private String cloudinaryPublicId;
     private Long uploadedById;
     private String uploadedByName;
     private Instant uploadedAt;
