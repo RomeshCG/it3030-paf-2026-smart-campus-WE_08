@@ -13,8 +13,20 @@ export default function TicketsLayout() {
       navigate('/dashboard');
       return;
     }
-    if (key === 'bookings') {
-      navigate('/dashboard');
+    if (key === 'catalogue') {
+      navigate('/');
+      return;
+    }
+    if (key === 'bookings' || key === 'my-bookings') {
+      navigate('/dashboard?section=bookings');
+      return;
+    }
+    if (key === 'manage-bookings') {
+      navigate('/dashboard?section=manage-bookings');
+      return;
+    }
+    if (key === 'analytics') {
+      navigate('/admin/analytics');
       return;
     }
     if (key === 'tickets') {

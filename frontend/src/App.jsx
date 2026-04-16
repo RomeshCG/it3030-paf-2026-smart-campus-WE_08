@@ -126,7 +126,7 @@ function App() {
           path="/bookings/my"
           element={(
             <ProtectedRoute allowedRoles={AUTHENTICATED_ROLES}>
-              <AppLayout><MyBookingsPage /></AppLayout>
+              <MyBookingsPage />
             </ProtectedRoute>
           )}
         />
@@ -142,7 +142,7 @@ function App() {
           path="/admin/bookings"
           element={(
             <ProtectedRoute allowedRoles={ADMIN_ROLES}>
-              <AppLayout><AdminBookingPage /></AppLayout>
+              <AdminBookingPage />
             </ProtectedRoute>
           )}
         />

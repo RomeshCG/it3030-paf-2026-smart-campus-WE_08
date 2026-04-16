@@ -1,9 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { getAllBookings, approveBooking, rejectBooking } from '../api/bookingApi';
-import { CheckCircle, XCircle, Clock, Users, Calendar as CalendarIcon, MessageSquare, Shield, Search, Filter } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Users, Calendar as CalendarIcon, MessageSquare, Shield, Search, Filter, Bell } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { AppSidebar } from '@/components/app-sidebar';
+import { useAuth } from '@/context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
-export const AdminBookingPage = () => {
+export const AdminBookingPage = ({ embedded = false }) => {
+    const { user, logout } = useAuth();
+    const navigate = useNavigate();
+    const role = user?.role ?? 'USER';
+
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('ALL'); // ALL, PENDING, APPROVED, REJECTED, CANCELLED
@@ -68,144 +80,173 @@ export const AdminBookingPage = () => {
         return matchesFilter && matchesSearch;
     });
 
-    const getStatusColor = (status) => {
+    const getStatusVariant = (status) => {
         switch (status) {
-            case 'APPROVED': return 'var(--success)';
-            case 'REJECTED': return 'var(--danger)';
-            case 'CANCELLED': return 'var(--text-secondary)';
-            default: return 'var(--warning)';
+            case 'APPROVED': return 'default';
+            case 'REJECTED': return 'destructive';
+            case 'CANCELLED': return 'outline';
+            default: return 'secondary';
         }
     };
 
-    if (loading) return <div className="spinner-container"><div className="spinner"></div></div>;
+    if (loading) return <div className="flex justify-center py-20"><div className="spinner"></div></div>;
+
+    const handleSidebarNavigate = (key) => {
+        if (key === 'dashboard') return navigate('/dashboard');
+        if (key === 'catalogue') return navigate('/');
+        if (key === 'my-bookings' || key === 'bookings') return navigate('/bookings/my');
+        if (key === 'tickets') return navigate(role === 'USER' ? '/tickets/my' : '/tickets/manage');
+        if (key === 'manage-bookings') return navigate('/admin/bookings');
+        if (key === 'analytics') return navigate('/admin/analytics');
+        if (['user-management', 'admin-management', 'super-admin-management', 'admin-invites', 'settings'].includes(key)) {
+            navigate(`/dashboard?section=${key}`);
+        }
+    };
+
+    const handleLogout = () => {
+        logout();
+        navigate('/login');
+    };
+
+    const content = (
+        <div className={`container animate-fade space-y-6 ${embedded ? '' : 'p-8'}`}>
+                    <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                            <Shield className="size-6 text-primary" />
+                            <h1 className="text-2xl font-semibold">Manage Bookings</h1>
+                        </div>
+                        <Badge variant="secondary">Admin Control Panel</Badge>
+                    </div>
+
+                    <Card>
+                        <CardContent className="pt-6">
+                            <div className="flex flex-wrap items-end gap-3">
+                                <div className="min-w-[220px] flex-1">
+                                    <label className="mb-2 block text-sm font-medium"><Search className="mr-1 inline size-4" /> Search</label>
+                                    <Input
+                                        placeholder="Search by user or resource..."
+                                        value={search}
+                                        onChange={(e) => setSearch(e.target.value)}
+                                    />
+                                </div>
+                                <div className="min-w-[200px]">
+                                    <label className="mb-2 block text-sm font-medium"><Filter className="mr-1 inline size-4" /> Status</label>
+                                    <select
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                        value={filter}
+                                        onChange={(e) => setFilter(e.target.value)}
+                                    >
+                                        <option value="ALL">All Statuses</option>
+                                        <option value="PENDING">Pending Only</option>
+                                        <option value="APPROVED">Approved</option>
+                                        <option value="REJECTED">Rejected</option>
+                                        <option value="CANCELLED">Cancelled</option>
+                                    </select>
+                                </div>
+                                <Button variant="outline" onClick={() => { setSearch(''); setFilter('ALL'); }}>Reset</Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <div className="grid gap-4">
+                        {filteredBookings.length === 0 ? (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>No bookings found</CardTitle>
+                                    <CardDescription>No booking requests match your current filters.</CardDescription>
+                                </CardHeader>
+                            </Card>
+                        ) : (
+                            filteredBookings.map(booking => (
+                                <Card key={booking.id}>
+                                    <CardContent className="pt-6">
+                                        <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
+                                            <div className="space-y-3">
+                                                <h3 className="text-lg font-semibold">{booking.resourceName}</h3>
+                                                <div className="grid gap-2 text-sm text-muted-foreground md:grid-cols-2">
+                                                    <div className="flex items-center gap-2"><CalendarIcon className="size-4" /> {booking.date}</div>
+                                                    <div className="flex items-center gap-2"><Clock className="size-4" /> {booking.startTime} - {booking.endTime}</div>
+                                                    <div className="flex items-center gap-2"><Users className="size-4" /> {booking.attendees} attendees</div>
+                                                    <div className="flex items-center gap-2"><Shield className="size-4" /> {booking.userName}</div>
+                                                </div>
+                                                <p className="text-sm"><strong>Purpose:</strong> {booking.purpose}</p>
+                                                {booking.rejectionReason && (
+                                                    <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                                                        <MessageSquare className="mr-2 inline size-4" />
+                                                        <strong>Reason:</strong> {booking.rejectionReason}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="flex flex-col items-end gap-2">
+                                                <Badge variant={getStatusVariant(booking.status)}>{booking.status}</Badge>
+                                                {booking.status === 'PENDING' && (
+                                                    <div className="flex gap-2">
+                                                        <Button onClick={() => handleApprove(booking.id)}>
+                                                            <CheckCircle className="mr-2 size-4" /> Approve
+                                                        </Button>
+                                                        <Button variant="destructive" onClick={() => openRejectModal(booking.id)}>
+                                                            <XCircle className="mr-2 size-4" /> Reject
+                                                        </Button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))
+                        )}
+                    </div>
+
+                    {/* Rejection Modal */}
+                    {isRejectModalOpen && (
+                        <div className="modal-overlay">
+                            <Card className="modal-content w-full max-w-md">
+                                <CardHeader>
+                                    <CardTitle>Reject Booking</CardTitle>
+                                    <CardDescription>Please provide a reason visible to the user.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <textarea
+                                        className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                        placeholder="e.g. Schedule conflict, Maintenance scheduled..."
+                                        value={rejectionReason}
+                                        onChange={(e) => setRejectionReason(e.target.value)}
+                                    />
+                                    <div className="flex gap-2">
+                                        <Button variant="outline" className="flex-1" onClick={() => setIsRejectModalOpen(false)}>Cancel</Button>
+                                        <Button variant="destructive" className="flex-1" onClick={handleReject}>Confirm Reject</Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    )}
+                </div>
+    );
+
+    if (embedded) return content;
 
     return (
-        <div className="container animate-fade">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <Shield size={32} color="var(--accent-color)" />
-                    <h1 className="page-title" style={{ margin: 0 }}>Manage Bookings</h1>
-                </div>
-                <div className="badge" style={{ background: 'rgba(99, 102, 241, 0.1)', color: 'var(--accent-color)' }}>
-                    Admin Control Panel
-                </div>
-            </div>
-
-            {/* Filters and Search */}
-            <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                <div style={{ flex: 2, minWidth: '250px' }}>
-                    <label className="form-label"><Search size={14} style={{ marginRight: '6px' }}/> Search</label>
-                    <input 
-                        type="text" 
-                        className="form-control" 
-                        placeholder="Search by user or resource..." 
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                    />
-                </div>
-                <div style={{ flex: 1, minWidth: '150px' }}>
-                    <label className="form-label"><Filter size={14} style={{ marginRight: '6px' }}/> Status Filter</label>
-                    <select className="form-control" value={filter} onChange={(e) => setFilter(e.target.value)}>
-                        <option value="ALL">All Statuses</option>
-                        <option value="PENDING">Pending Only</option>
-                        <option value="APPROVED">Approved</option>
-                        <option value="REJECTED">Rejected</option>
-                        <option value="CANCELLED">Cancelled</option>
-                    </select>
-                </div>
-                <button className="btn btn-secondary" onClick={() => { setSearch(''); setFilter('ALL'); }}>Reset</button>
-            </div>
-
-            {/* Bookings List */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {filteredBookings.length === 0 ? (
-                    <div className="glass-panel" style={{ textAlign: 'center', padding: '4rem' }}>
-                        <Clock size={48} style={{ color: 'var(--text-secondary)', marginBottom: '1rem', opacity: 0.5 }} />
-                        <h3>No bookings found</h3>
-                        <p style={{ color: 'var(--text-secondary)' }}>No booking requests match your current filters.</p>
+        <SidebarProvider>
+            <AppSidebar
+                role={role}
+                activeNav="manage-bookings"
+                onNavigate={handleSidebarNavigate}
+                onLogout={handleLogout}
+                onSettings={() => navigate('/dashboard?section=settings')}
+            />
+            <SidebarInset>
+                <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200 bg-white/80 px-8 backdrop-blur-md dark:border-slate-800 dark:bg-slate-950/80">
+                    <div className="flex items-center gap-3">
+                        <SidebarTrigger />
+                        <h1 className="text-xl font-semibold">Manage Bookings</h1>
                     </div>
-                ) : (
-                    filteredBookings.map(booking => (
-                        <div key={booking.id} className="glass-panel animate-slide-up" style={{ padding: '1.5rem', borderLeft: `4px solid ${getStatusColor(booking.status)}` }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '1rem' }}>
-                                <div>
-                                    <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-primary)' }}>{booking.resourceName}</h3>
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <CalendarIcon size={14} /> {booking.date}
-                                        </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <Clock size={14} /> {booking.startTime} - {booking.endTime}
-                                        </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <Users size={14} /> {booking.attendees} Attendees
-                                        </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--accent-color)', fontWeight: 600 }}>
-                                            <Shield size={14} /> {booking.userName}
-                                        </div>
-                                    </div>
-                                    <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', fontSize: '0.9rem' }}>
-                                        <strong>Purpose:</strong> {booking.purpose}
-                                    </div>
-                                    {booking.rejectionReason && (
-                                        <div style={{ marginTop: '0.5rem', color: 'var(--danger)', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <MessageSquare size={14} /> <strong>Reason:</strong> {booking.rejectionReason}
-                                        </div>
-                                    )}
-                                </div>
-                                
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-end', justifyContent: 'center' }}>
-                                    <span className="badge" style={{ 
-                                        background: `${getStatusColor(booking.status)}22`, 
-                                        color: getStatusColor(booking.status),
-                                        borderColor: `${getStatusColor(booking.status)}44`,
-                                        marginBottom: '0.5rem'
-                                    }}>
-                                        {booking.status}
-                                    </span>
-                                    
-                                    {booking.status === 'PENDING' && (
-                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                            <button className="btn btn-primary" style={{ padding: '0.5rem 1rem' }} onClick={() => handleApprove(booking.id)}>
-                                                <CheckCircle size={16} /> Approve
-                                            </button>
-                                            <button className="btn btn-danger" style={{ padding: '0.5rem 1rem' }} onClick={() => openRejectModal(booking.id)}>
-                                                <XCircle size={16} /> Reject
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    ))
-                )}
-            </div>
-
-            {/* Rejection Modal */}
-            {isRejectModalOpen && (
-                <div className="modal-overlay">
-                    <div className="modal-content glass-panel" style={{ maxWidth: '450px', width: '100%' }}>
-                        <h2 style={{ marginBottom: '1rem' }}>Reject Booking</h2>
-                        <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
-                            Please provide a reason for rejecting this booking request. This will be visible to the user.
-                        </p>
-                        <div className="form-group">
-                            <label className="form-label">Rejection Reason</label>
-                            <textarea 
-                                className="form-control" 
-                                rows="3" 
-                                placeholder="e.g. Schedule conflict, Maintenance scheduled..."
-                                value={rejectionReason}
-                                onChange={(e) => setRejectionReason(e.target.value)}
-                            ></textarea>
-                        </div>
-                        <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
-                            <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setIsRejectModalOpen(false)}>Cancel</button>
-                            <button className="btn btn-danger" style={{ flex: 1 }} onClick={handleReject}>Confirm Reject</button>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
+                    <Button variant="ghost" size="icon" className="relative text-slate-500">
+                        <Bell className="size-5" />
+                    </Button>
+                </header>
+                {content}
+            </SidebarInset>
+        </SidebarProvider>
     );
 };

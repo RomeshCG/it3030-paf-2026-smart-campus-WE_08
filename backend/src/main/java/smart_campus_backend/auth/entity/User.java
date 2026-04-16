@@ -24,6 +24,8 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
+    private String profileImageUrl;
+
     // Nullable — Google OAuth users have no local password
     private String password;
 

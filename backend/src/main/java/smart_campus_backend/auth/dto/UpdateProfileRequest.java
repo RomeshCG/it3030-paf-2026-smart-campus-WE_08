@@ -1,13 +1,13 @@
 package smart_campus_backend.auth.dto;
 
-import lombok.Builder;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
-@Builder
-public class CurrentUserResponse {
+public class UpdateProfileRequest {
+
+    @NotBlank(message = "Name is required")
     private String name;
-    private String email;
+
     private String profileImageUrl;
-    private String role;
 }
