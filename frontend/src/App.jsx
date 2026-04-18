@@ -13,7 +13,6 @@ import MyTicketsPage from './pages/tickets/MyTicketsPage';
 import TicketManagementPage from './pages/tickets/TicketManagementPage';
 import CreateTicketPage from './pages/tickets/CreateTicketPage';
 import TicketDetailPage from './pages/tickets/TicketDetailPage';
-import ProtectedRoute from './components/ProtectedRoute';
 import { MyBookingsPage } from './pages/MyBookingsPage';
 import { AdminAnalyticsDashboard } from './pages/AdminAnalyticsDashboard';
 import { AdminBookingPage } from './pages/AdminBookingPage';
