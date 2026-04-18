@@ -15,6 +15,7 @@ import smart_campus_backend.booking.repository.BookingRepository;
 import smart_campus_backend.exception.BookingConflictException;
 import smart_campus_backend.notification.service.NotificationService;
 import smart_campus_backend.resource.entity.CampusResource;
+import smart_campus_backend.resource.entity.ResourceStatus;
 import smart_campus_backend.resource.repository.CampusResourceRepository;
 
 import java.time.LocalDateTime;
@@ -38,6 +39,14 @@ public class BookingService {
         // 1. Validate resource exists
         CampusResource resource = resourceRepository.findById(request.getResourceId())
                 .orElseThrow(() -> new EntityNotFoundException("Resource not found with ID: " + request.getResourceId()));
+
+        if (resource.getStatus() != ResourceStatus.ACTIVE || !Boolean.TRUE.equals(resource.getAvailable())) {
+            throw new IllegalStateException("This resource is currently unavailable for booking");
+        }
+
+        if (request.getAttendees() != null && request.getAttendees() > resource.getCapacity()) {
+            throw new IllegalArgumentException("Attendees cannot exceed resource capacity of " + resource.getCapacity());
+        }
 
         // 2. Validate startTime < endTime
         if (request.getStartTime().isAfter(request.getEndTime()) || request.getStartTime().equals(request.getEndTime())) {
@@ -133,6 +142,26 @@ public class BookingService {
         
         if (booking.getStatus() != BookingStatus.PENDING) {
             throw new IllegalStateException("Only pending bookings can be approved");
+        }
+
+        CampusResource resource = booking.getResource();
+        if (resource.getStatus() != ResourceStatus.ACTIVE || !Boolean.TRUE.equals(resource.getAvailable())) {
+            throw new IllegalStateException("Cannot approve booking: resource is currently unavailable");
+        }
+        if (booking.getAttendees() != null && booking.getAttendees() > resource.getCapacity()) {
+            throw new IllegalStateException("Cannot approve booking: attendees exceed resource capacity");
+        }
+
+        boolean hasApprovedConflict = bookingRepository.existsOverlappingBookingExcluding(
+                resource.getId(),
+                booking.getDate(),
+                booking.getStartTime(),
+                booking.getEndTime(),
+                booking.getId(),
+                List.of(BookingStatus.APPROVED)
+        );
+        if (hasApprovedConflict) {
+            throw new BookingConflictException("Cannot approve booking: the selected time slot is already allocated");
         }
 
         booking.setStatus(BookingStatus.APPROVED);

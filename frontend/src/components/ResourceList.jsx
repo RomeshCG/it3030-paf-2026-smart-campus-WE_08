@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { ResourceTypes, ResourceStatuses } from '../types/resource';
 import { getResources, deleteResource, getDashboardStats } from '../api/resourceApi';
 import { ResourceForm } from './ResourceForm';
-import { Plus, Edit2, Trash2, MapPin, Users, Activity, RefreshCw, Layers, Eye, Download, PieChart, CheckCircle, AlertCircle, Shield, FileDown, Search } from 'lucide-react';
+import { Plus, Edit2, Trash2, MapPin, Users, Activity, RefreshCw, Layers, PieChart, CheckCircle, AlertCircle, FileDown, Search, MoreVertical, Building2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -147,11 +147,11 @@ export const ResourceList = () => {
   return (
     <div className="container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h1 className="page-title" style={{ margin: 0 }}>Facilities & Assets Catalogue</h1>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <span className="badge" style={{ background: 'var(--accent-color)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Shield size={14} /> Role: {user?.role ?? 'USER'}
-          </span>
+        <div>
+          <h1 className="page-title" style={{ margin: 0 }}>Facilities & Assets Catalogue</h1>
+          <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+            Manage and monitor all university resources with a clean white dashboard view.
+          </p>
         </div>
       </div>
       
@@ -269,11 +269,8 @@ export const ResourceList = () => {
       {/* Grid */}
       <div className="resource-grid">
         {resources.map((res) => (
-          <div key={res.id} className="glass-panel resource-card">
+          <div key={res.id} className="glass-panel resource-card" onClick={() => handleViewDetails(res.id)} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && handleViewDetails(res.id)}>
             <div className="image-container">
-              <span className={`badge type-badge badge-${res.type.toLowerCase()}`}>
-                {res.type}
-              </span>
               <span className={`badge status-badge`} style={{ 
                 background: res.status === 'ACTIVE' ? 'var(--success)' : 'var(--danger)',
                 color: 'white',
@@ -289,68 +286,66 @@ export const ResourceList = () => {
               )}
             </div>
             
-            <h3 className="card-title">{res.name}</h3>
+            <div className="card-head-row">
+              <h3 className="card-title">{res.name}</h3>
+              <button
+                className="card-menu-btn"
+                type="button"
+                onClick={(e) => e.stopPropagation()}
+                aria-label="More options"
+                title="More options"
+              >
+                <MoreVertical size={15} />
+              </button>
+            </div>
             
             <div className="card-details">
               <div className="detail-row">
-                <MapPin size={16} style={{ color: 'var(--text-secondary)' }}/>
-                <span>{res.location}</span>
+                <MapPin size={14} style={{ color: 'var(--text-secondary)' }}/>
+                <span>{res.location || 'Location not set'}</span>
               </div>
               <div className="detail-row">
-                <Users size={16} style={{ color: 'var(--accent-color)' }}/>
-                <span>Capacity: <strong>{res.capacity}</strong></span>
+                <Building2 size={14} style={{ color: 'var(--text-secondary)' }}/>
+                <span>{res.type.replace('_', ' ')}</span>
               </div>
-              <div className="detail-row" style={{ marginTop: '0.5rem' }}>
-                {res.available ? (
-                  <span style={{ color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.9rem' }}>
-                    <CheckCircle size={14} /> Currently Available
-                  </span>
-                ) : (
-                  <span style={{ color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.9rem' }}>
-                    <AlertCircle size={14} /> Not Available
-                  </span>
-                )}
+              <div className="detail-row">
+                <Users size={14} style={{ color: 'var(--text-secondary)' }}/>
+                <span>Capacity: {res.capacity} Students</span>
               </div>
             </div>
 
-            <div className="card-actions" style={{ display: 'grid', gridTemplateColumns: isAdmin ? '1fr 1fr' : '1fr', gap: '0.5rem', marginTop: '1.5rem' }}>
-              <button 
-                className="btn btn-primary" 
-                style={{ gridColumn: isAdmin ? 'span 2' : 'span 1', padding: '0.6rem' }}
-                onClick={() => handleViewDetails(res.id)}
-              >
-                <Eye size={16} /> View Details
-              </button>
-              
-              {isAdmin && (
+            <div className="availability-row">
+              <span className={`availability-pill ${
+                res.status !== 'ACTIVE'
+                  ? 'availability-unavailable'
+                  : res.available
+                    ? 'availability-available'
+                    : 'availability-booked'
+              }`}>
+                {res.status !== 'ACTIVE' ? 'Unavailable' : res.available ? 'Available' : 'Booked'}
+              </span>
+            </div>
+
+            {isAdmin && (
+              <div className="card-admin-actions">
                 <>
                   <button 
                     className="btn btn-secondary" 
-                    style={{ padding: '0.5rem' }}
+                    style={{ padding: '0.45rem 0.7rem' }}
                     onClick={(e) => { e.stopPropagation(); handleEdit(res); }}
                   >
                     <Edit2 size={16} /> Edit
                   </button>
                   <button 
                     className="btn btn-danger" 
-                    style={{ padding: '0.5rem' }}
+                    style={{ padding: '0.45rem 0.7rem' }}
                     onClick={(e) => { e.stopPropagation(); confirmDelete(res.id); }}
                   >
                     <Trash2 size={16} /> Delete
                   </button>
                 </>
-              )}
-
-              {res.downloadUrl && (
-                <button 
-                  className="btn btn-secondary" 
-                  style={{ gridColumn: isAdmin ? 'span 2' : 'span 1', padding: '0.6rem', color: 'var(--success)' }}
-                  onClick={(e) => { e.stopPropagation(); window.open(res.downloadUrl, '_blank'); }}
-                >
-                  <Download size={16} /> Fast Download
-                </button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         ))}
       </div>

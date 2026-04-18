@@ -18,6 +18,7 @@ import { Bell, BookOpen, Building2, Copy, LifeBuoy, MoreHorizontal, ShieldCheck,
 import { ADMIN_ROLES } from '@/constants/roles';
 import { MyBookingsPage } from '@/pages/MyBookingsPage';
 import { AdminBookingPage } from '@/pages/AdminBookingPage';
+import { AdminResourceManagementPage } from '@/pages/AdminResourceManagementPage';
 
 const ROLE_OPTIONS = ['USER', 'ADMIN', 'TECHNICIAN', 'SUPER_ADMIN'];
 
@@ -27,6 +28,7 @@ export default function DashboardPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const role = user?.role ?? 'USER';
   const isSuperAdmin = role === 'SUPER_ADMIN';
+  const isAdminLike = ADMIN_ROLES.includes(role);
 
   const [activePage, setActivePage] = useState('dashboard');
   const [users, setUsers] = useState([]);
@@ -56,29 +58,33 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!isSuperAdmin) {
-      const allowedForCoreRoles = ['dashboard', 'bookings', 'manage-bookings', 'settings'];
+      const allowedForCoreRoles = isAdminLike
+        ? ['dashboard', 'bookings', 'resource-management', 'manage-bookings', 'settings']
+        : ['dashboard', 'bookings', 'settings'];
       if (!allowedForCoreRoles.includes(activePage)) {
         setActivePage('dashboard');
       }
       return;
     }
-    if (!['dashboard', 'bookings', 'manage-bookings', 'user-management', 'admin-management', 'super-admin-management', 'admin-invites', 'settings'].includes(activePage)) {
+    if (!['dashboard', 'bookings', 'resource-management', 'manage-bookings', 'user-management', 'admin-management', 'super-admin-management', 'admin-invites', 'settings'].includes(activePage)) {
       setActivePage('dashboard');
     }
-  }, [activePage, isSuperAdmin]);
+  }, [activePage, isSuperAdmin, isAdminLike]);
 
   useEffect(() => {
     const section = searchParams.get('section');
     if (!section) return;
 
     const allowed = isSuperAdmin
-      ? ['dashboard', 'user-management', 'admin-management', 'super-admin-management', 'admin-invites', 'settings']
-      : ['dashboard', 'bookings', 'manage-bookings', 'settings'];
+      ? ['dashboard', 'resource-management', 'user-management', 'admin-management', 'super-admin-management', 'admin-invites', 'settings']
+      : isAdminLike
+        ? ['dashboard', 'bookings', 'resource-management', 'manage-bookings', 'settings']
+        : ['dashboard', 'bookings', 'settings'];
 
     if (allowed.includes(section)) {
       setActivePage(section);
     }
-  }, [isSuperAdmin, searchParams]);
+  }, [isSuperAdmin, isAdminLike, searchParams]);
 
   useEffect(() => {
     if (!isSuperAdmin) return;
@@ -359,6 +365,10 @@ export default function DashboardPage() {
       updateDashboardSectionParam('bookings');
       return setActivePage('bookings');
     }
+    if (key === 'resource-management') {
+      updateDashboardSectionParam('resource-management');
+      return setActivePage('resource-management');
+    }
     if (key === 'tickets') return navigate(user?.role === 'USER' ? '/tickets/my' : '/tickets/manage');
     if (key === 'manage-bookings') {
       updateDashboardSectionParam('manage-bookings');
@@ -384,6 +394,10 @@ export default function DashboardPage() {
     }
     if (key === 'admin-bookings') {
       setActivePage('manage-bookings');
+      return;
+    }
+    if (key === 'resource-management') {
+      setActivePage('resource-management');
       return;
     }
     if (key === 'analytics') {
@@ -452,6 +466,7 @@ export default function DashboardPage() {
             {activePage === 'settings' && 'Profile Settings'}
             {activePage === 'dashboard' && 'Dashboard'}
             {activePage === 'bookings' && 'My Bookings'}
+            {activePage === 'resource-management' && 'Assets & Facilities'}
             {activePage === 'manage-bookings' && 'Manage Bookings'}
             </h1>
           </div>
@@ -766,6 +781,8 @@ export default function DashboardPage() {
             </>
           ) : activePage === 'bookings' ? (
             <MyBookingsPage embedded />
+          ) : activePage === 'resource-management' ? (
+            <AdminResourceManagementPage embedded />
           ) : activePage === 'manage-bookings' ? (
             <AdminBookingPage embedded />
           ) : (
@@ -788,6 +805,14 @@ export default function DashboardPage() {
                   <CardDescription>Create and follow maintenance tickets.</CardDescription>
                 </CardHeader>
               </Card>
+              {ADMIN_ROLES.includes(role) && (
+                <Card className="cursor-pointer" onClick={() => openDashboardModule('resource-management')}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Building2 className="size-5" /> Assets & Facilities</CardTitle>
+                    <CardDescription>View and manage all campus resources from dashboard.</CardDescription>
+                  </CardHeader>
+                </Card>
+              )}
               {ADMIN_ROLES.includes(role) && (
                 <Card className="cursor-pointer" onClick={() => openDashboardModule('admin-bookings')}>
                   <CardHeader>

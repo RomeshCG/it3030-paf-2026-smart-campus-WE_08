@@ -30,3 +30,19 @@ export const getDashboardStats = async () => {
   const { data } = await api.get(`${API_URL}/stats`);
   return data;
 };
+
+export const uploadResourceImage = async (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  try {
+    const { data } = await api.post(`${API_URL}/upload-image`, formData);
+    return data;
+  } catch (err) {
+    const status = err?.response?.status;
+    if (status === 405) {
+      throw new Error('Image upload endpoint is not active yet (HTTP 405). Restart backend and try again.');
+    }
+    const apiMessage = err?.response?.data?.message || err?.response?.data?.error;
+    throw new Error(apiMessage || 'Failed to upload resource image');
+  }
+};
