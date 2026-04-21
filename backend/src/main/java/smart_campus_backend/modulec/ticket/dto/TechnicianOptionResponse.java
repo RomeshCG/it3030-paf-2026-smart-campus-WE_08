@@ -1,4 +1,4 @@
-package smart_campus_backend.auth.dto;
+package smart_campus_backend.modulec.ticket.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,11 +9,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AuthResponse {
-    private String token;
-    private Long userId;
+public class TechnicianOptionResponse {
+    private Long id;
     private String name;
     private String email;
-    private String profileImageUrl;
-    private String role;
 }

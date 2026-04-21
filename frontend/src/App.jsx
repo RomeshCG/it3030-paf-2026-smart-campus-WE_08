@@ -16,6 +16,7 @@ import TicketDetailPage from './pages/tickets/TicketDetailPage';
 import { MyBookingsPage } from './pages/MyBookingsPage';
 import { AdminAnalyticsDashboard } from './pages/AdminAnalyticsDashboard';
 import { AdminBookingPage } from './pages/AdminBookingPage';
+import { ADMIN_ROLES, AUTHENTICATED_ROLES } from './constants/roles';
 import './App.css';
 import './index.css';
 
@@ -61,7 +62,7 @@ function App() {
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute allowedRoles={['USER', 'ADMIN', 'TECHNICIAN', 'SUPER_ADMIN']}>
+            <ProtectedRoute allowedRoles={AUTHENTICATED_ROLES}>
               <DashboardPage />
             </ProtectedRoute>
           }
@@ -70,7 +71,7 @@ function App() {
         <Route
           path="/tickets"
           element={
-            <ProtectedRoute allowedRoles={['USER', 'ADMIN', 'TECHNICIAN', 'SUPER_ADMIN']}>
+            <ProtectedRoute allowedRoles={AUTHENTICATED_ROLES}>
               <TicketsLayout />
             </ProtectedRoute>
           }
@@ -79,7 +80,7 @@ function App() {
           <Route
             path="my"
             element={
-              <ProtectedRoute allowedRoles={['USER']}>
+              <ProtectedRoute allowedRoles={AUTHENTICATED_ROLES}>
                 <MyTicketsPage />
               </ProtectedRoute>
             }
@@ -97,11 +98,54 @@ function App() {
         </Route>
 
         {/* Default redirect */}
-        <Route path="/" element={<AppLayout><ResourceList /></AppLayout>} />
-        <Route path="/resources/:id" element={<AppLayout><ResourceDetails /></AppLayout>} />
-        <Route path="/bookings/my" element={<AppLayout><MyBookingsPage /></AppLayout>} />
-        <Route path="/admin/analytics" element={<AppLayout><AdminAnalyticsDashboard /></AppLayout>} />
-        <Route path="/admin/bookings" element={<AppLayout><AdminBookingPage /></AppLayout>} />
+        <Route
+          path="/"
+          element={(
+            <ProtectedRoute allowedRoles={AUTHENTICATED_ROLES}>
+              <AppLayout><ResourceList /></AppLayout>
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/resources/:id"
+          element={(
+            <ProtectedRoute allowedRoles={AUTHENTICATED_ROLES}>
+              <AppLayout><ResourceDetails /></AppLayout>
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/resources"
+          element={(
+            <ProtectedRoute allowedRoles={AUTHENTICATED_ROLES}>
+              <AppLayout><ResourceList /></AppLayout>
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/bookings/my"
+          element={(
+            <ProtectedRoute allowedRoles={AUTHENTICATED_ROLES}>
+              <MyBookingsPage />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/admin/analytics"
+          element={(
+            <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+              <AppLayout><AdminAnalyticsDashboard /></AppLayout>
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/admin/bookings"
+          element={(
+            <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+              <AdminBookingPage />
+            </ProtectedRoute>
+          )}
+        />
 
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>

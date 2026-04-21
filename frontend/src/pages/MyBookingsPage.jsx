@@ -1,10 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { getMyBookings, cancelBooking, getBookingHistory } from '../api/bookingApi';
 import { BookingHistory } from '../components/BookingHistory';
-import { Calendar, Clock, MapPin, XCircle, Info, RefreshCw, MessageSquare } from 'lucide-react';
+import { Calendar, Clock, MapPin, XCircle, Info, RefreshCw, MessageSquare, Bell } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { AppSidebar } from '@/components/app-sidebar';
+import { useAuth } from '@/context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
-export const MyBookingsPage = () => {
+export const MyBookingsPage = ({ embedded = false }) => {
+    const { user, logout } = useAuth();
+    const navigate = useNavigate();
+    const role = user?.role ?? 'USER';
+
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedHistory, setSelectedHistory] = useState(null);
@@ -46,97 +57,137 @@ export const MyBookingsPage = () => {
         }
     };
 
-    const getStatusBadgeClass = (status) => {
+    const getStatusVariant = (status) => {
         switch (status) {
-            case 'APPROVED': return 'badge-success';
-            case 'PENDING': return 'badge-warning';
-            case 'REJECTED': return 'badge-danger';
-            case 'CANCELLED': return 'badge-secondary';
-            default: return 'badge-secondary';
+            case 'APPROVED': return 'default';
+            case 'PENDING': return 'secondary';
+            case 'REJECTED': return 'destructive';
+            case 'CANCELLED': return 'outline';
+            default: return 'outline';
         }
     };
 
-    if (loading) return <div className="spinner-container"><div className="spinner"></div></div>;
+    if (loading) return <div className="flex justify-center py-20"><div className="spinner"></div></div>;
+
+    const handleSidebarNavigate = (key) => {
+        if (key === 'dashboard') return navigate('/dashboard');
+        if (key === 'catalogue') return navigate('/');
+        if (key === 'my-bookings' || key === 'bookings') return navigate('/bookings/my');
+        if (key === 'tickets') return navigate(role === 'USER' ? '/tickets/my' : '/tickets/manage');
+        if (key === 'manage-bookings') return navigate('/admin/bookings');
+        if (key === 'analytics') return navigate('/admin/analytics');
+        if (['user-management', 'admin-management', 'super-admin-management', 'admin-invites', 'settings'].includes(key)) {
+            navigate(`/dashboard?section=${key}`);
+        }
+    };
+
+    const handleLogout = () => {
+        logout();
+        navigate('/login');
+    };
+
+    const content = (
+        <div className={`container animate-fade space-y-6 ${embedded ? '' : 'p-8'}`}>
+                    <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                            <Calendar className="size-6 text-primary" />
+                            <h1 className="text-2xl font-semibold">My Bookings</h1>
+                        </div>
+                        <Button variant="outline" onClick={fetchBookings}>
+                            <RefreshCw className="mr-2 size-4" /> Refresh
+                        </Button>
+                    </div>
+
+                    {bookings.length === 0 ? (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>No bookings found</CardTitle>
+                                <CardDescription>You haven't made any resource requests yet.</CardDescription>
+                            </CardHeader>
+                        </Card>
+                    ) : (
+                        <div className="grid gap-4">
+                            {bookings.map(booking => (
+                                <Card key={booking.id}>
+                                    <CardHeader>
+                                        <div className="flex flex-wrap items-center justify-between gap-2">
+                                            <CardTitle className="text-lg">{booking.resourceName}</CardTitle>
+                                            <Badge variant={getStatusVariant(booking.status)}>{booking.status}</Badge>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div className="grid gap-2 text-sm text-muted-foreground md:grid-cols-2">
+                                            <div className="flex items-center gap-2"><Calendar className="size-4" /> {new Date(booking.date).toLocaleDateString()}</div>
+                                            <div className="flex items-center gap-2"><Clock className="size-4" /> {booking.startTime} - {booking.endTime}</div>
+                                            <div className="flex items-center gap-2"><MapPin className="size-4" /> {booking.resourceLocation}</div>
+                                            <div className="flex items-center gap-2"><Info className="size-4" /> {booking.purpose}</div>
+                                        </div>
+                                        {booking.rejectionReason && (
+                                            <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                                                <div className="flex items-center gap-2">
+                                                    <MessageSquare className="size-4" />
+                                                    <strong>Rejection Reason:</strong> {booking.rejectionReason}
+                                                </div>
+                                            </div>
+                                        )}
+                                        <div className="flex flex-wrap gap-2">
+                                            <Button variant="outline" onClick={() => handleViewHistory(booking.id)}>
+                                                <Clock className="mr-2 size-4" /> View History
+                                            </Button>
+                                            {(booking.status === 'PENDING' || booking.status === 'APPROVED') && (
+                                                <Button variant="destructive" onClick={() => handleCancel(booking.id)}>
+                                                    <XCircle className="mr-2 size-4" /> Cancel
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* History Modal */}
+                    {showHistoryModal && (
+                        <div className="modal-overlay" onClick={() => setShowHistoryModal(false)}>
+                            <Card className="modal-content w-full max-w-xl" onClick={(e) => e.stopPropagation()}>
+                                <CardHeader>
+                                    <div className="flex items-center justify-between">
+                                        <CardTitle>Booking Audit History</CardTitle>
+                                        <Button variant="ghost" onClick={() => setShowHistoryModal(false)}>Close</Button>
+                                    </div>
+                                </CardHeader>
+                                <CardContent>
+                                    <BookingHistory history={selectedHistory} />
+                                </CardContent>
+                            </Card>
+                        </div>
+                    )}
+                </div>
+    );
+
+    if (embedded) return content;
 
     return (
-        <div className="container animate-fade">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <Calendar size={32} color="var(--accent-color)" />
-                    <h1 className="page-title" style={{ margin: 0 }}>My Bookings</h1>
-                </div>
-                <button className="btn btn-secondary" onClick={fetchBookings}>
-                    <RefreshCw size={16} /> Refresh
-                </button>
-            </div>
-
-            {bookings.length === 0 ? (
-                <div className="glass-panel" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-                    <Calendar size={64} style={{ opacity: 0.2, marginBottom: '1.5rem' }} />
-                    <h2>No bookings found</h2>
-                    <p style={{ color: 'var(--text-secondary)' }}>You haven't made any resource requests yet.</p>
-                </div>
-            ) : (
-                <div className="bookings-list" style={{ display: 'grid', gap: '1.5rem' }}>
-                    {bookings.map(booking => (
-                        <div key={booking.id} className="glass-panel" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1.5rem' }}>
-                            <div style={{ flex: 1, minWidth: '300px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1rem' }}>
-                                    <h3 style={{ margin: 0 }}>{booking.resourceName}</h3>
-                                    <span className={`badge ${getStatusBadgeClass(booking.status)}`} style={{ textTransform: 'capitalize' }}>
-                                        {booking.status}
-                                    </span>
-                                </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.8rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <Calendar size={14} /> {new Date(booking.date).toLocaleDateString()}
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <Clock size={14} /> {booking.startTime} - {booking.endTime}
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <MapPin size={14} /> {booking.resourceLocation}
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <Info size={14} /> {booking.purpose}
-                                    </div>
-                                </div>
-                                {booking.rejectionReason && (
-                                    <div className="alert-danger" style={{ marginTop: '1rem', padding: '0.8rem', borderRadius: '8px', fontSize: '0.85rem', display: 'flex', gap: '8px', alignItems: 'center', background: 'rgba(244, 63, 94, 0.1)' }}>
-                                        <MessageSquare size={14} /> <strong>Rejection Reason:</strong> {booking.rejectionReason}
-                                    </div>
-                                )}
-                            </div>
-                            <div style={{ display: 'flex', gap: '0.8rem' }}>
-                                <button className="btn btn-secondary" onClick={() => handleViewHistory(booking.id)} style={{ padding: '0.6rem 1rem', fontSize: '0.85rem' }}>
-                                    <Clock size={16} /> View History
-                                </button>
-                                {(booking.status === 'PENDING' || booking.status === 'APPROVED') && (
-                                    <button className="btn btn-danger" onClick={() => handleCancel(booking.id)} style={{ padding: '0.6rem 1rem', fontSize: '0.85rem' }}>
-                                        <XCircle size={16} /> Cancel
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-
-            {/* History Modal */}
-            {showHistoryModal && (
-                <div className="modal-overlay" onClick={() => setShowHistoryModal(false)}>
-                    <div className="modal-content glass-panel" style={{ maxWidth: '500px' }} onClick={e => e.stopPropagation()}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
-                            <h2 style={{ margin: 0 }}>Booking Audit History</h2>
-                            <button className="btn-close" onClick={() => setShowHistoryModal(false)}>×</button>
-                        </div>
-                        <BookingHistory history={selectedHistory} />
-                        <div style={{ marginTop: '2rem', textAlign: 'right' }}>
-                            <button className="btn btn-secondary" onClick={() => setShowHistoryModal(false)}>Close</button>
-                        </div>
+        <SidebarProvider>
+            <AppSidebar
+                role={role}
+                activeNav="bookings"
+                onNavigate={handleSidebarNavigate}
+                onLogout={handleLogout}
+                onSettings={() => navigate('/dashboard?section=settings')}
+            />
+            <SidebarInset>
+                <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200 bg-white/80 px-8 backdrop-blur-md dark:border-slate-800 dark:bg-slate-950/80">
+                    <div className="flex items-center gap-3">
+                        <SidebarTrigger />
+                        <h1 className="text-xl font-semibold">My Bookings</h1>
                     </div>
-                </div>
-            )}
-        </div>
+                    <Button variant="ghost" size="icon" className="relative text-slate-500">
+                        <Bell className="size-5" />
+                    </Button>
+                </header>
+                {content}
+            </SidebarInset>
+        </SidebarProvider>
     );
 };

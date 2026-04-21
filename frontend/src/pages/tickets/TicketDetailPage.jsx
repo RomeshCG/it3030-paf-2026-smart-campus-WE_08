@@ -11,6 +11,15 @@ import TicketStatusBadge from '@/components/tickets/TicketStatusBadge';
 import { getApiErrorMessage } from '@/lib/getApiErrorMessage';
 import { ticketsApi } from '@/services/ticketsApi';
 
+function formatContactMethod(method) {
+  if (!method) return 'Not specified';
+  return method.replace('_', ' ');
+}
+
+function isHttpUrl(value) {
+  return typeof value === 'string' && /^https?:\/\//i.test(value);
+}
+
 export default function TicketDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -110,7 +119,7 @@ export default function TicketDetailPage() {
         <TicketPriorityBadge priority={ticket.priority} />
       </div>
 
-      <div className={`grid gap-6 ${canStaffPanel ? 'lg:grid-cols-3' : ''}`}>
+      <div className={`grid items-start gap-6 ${canStaffPanel ? 'lg:grid-cols-3' : ''}`}>
         <Card className={canStaffPanel ? 'lg:col-span-2' : ''}>
           <CardHeader>
             <CardTitle>{ticket.title}</CardTitle>
@@ -134,7 +143,17 @@ export default function TicketDetailPage() {
             {ticket.preferredContactDetails ? (
               <div>
                 <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">Contact</h3>
-                <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{ticket.preferredContactDetails}</p>
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                  Method: {formatContactMethod(ticket.preferredContactMethod)}
+                </p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">{ticket.preferredContactDetails}</p>
+              </div>
+            ) : ticket.preferredContactMethod ? (
+              <div>
+                <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">Contact</h3>
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                  Method: {formatContactMethod(ticket.preferredContactMethod)}
+                </p>
               </div>
             ) : null}
             <div className="text-xs text-slate-500">
@@ -176,7 +195,34 @@ export default function TicketDetailPage() {
                   key={a.id}
                   className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm dark:border-slate-800"
                 >
-                  <span className="font-medium text-slate-800 dark:text-slate-200">{a.fileName}</span>
+                  <div className="flex items-center gap-3">
+                    {isHttpUrl(a.filePath) ? (
+                      <a href={a.filePath} target="_blank" rel="noreferrer">
+                        <img
+                          src={a.filePath}
+                          alt={a.fileName}
+                          className="h-12 w-12 rounded-md border border-slate-200 object-cover dark:border-slate-700"
+                        />
+                      </a>
+                    ) : null}
+                    <div className="space-y-0.5">
+                      <p className="font-medium text-slate-800 dark:text-slate-200">{a.fileName}</p>
+                      {isHttpUrl(a.filePath) ? (
+                        <a
+                          href={a.filePath}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs text-blue-600 hover:underline dark:text-blue-400"
+                        >
+                          View image
+                        </a>
+                      ) : (
+                        <p className="text-xs text-amber-600 dark:text-amber-400">
+                          Legacy file path; re-upload to make it viewable online.
+                        </p>
+                      )}
+                    </div>
+                  </div>
                   <span className="text-xs text-slate-500">
                     {a.uploadedByName} · {a.uploadedAt ? new Date(a.uploadedAt).toLocaleString() : ''}
                   </span>

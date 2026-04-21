@@ -1,7 +1,8 @@
 package smart_campus_backend.modulec.ticket;
 
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
@@ -24,15 +25,10 @@ import smart_campus_backend.modulec.ticket.repository.TicketCommentRepository;
 import smart_campus_backend.modulec.ticket.repository.TicketRepository;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -53,9 +49,7 @@ public class TicketServiceImpl implements TicketService {
     private final TicketCommentRepository ticketCommentRepository;
     private final TicketAttachmentRepository ticketAttachmentRepository;
     private final UserRepository userRepository;
-
-    @Value("${app.ticketing.upload-dir:uploads/tickets}")
-    private String uploadDir;
+    private final Cloudinary cloudinary;
 
     @Override
     @Transactional
@@ -67,6 +61,11 @@ public class TicketServiceImpl implements TicketService {
                 .description(request.getDescription().trim())
                 .priority(request.getPriority())
                 .preferredContactDetails(trimToNull(request.getPreferredContactDetails()))
+                .preferredContactMethod(
+                        request.getPreferredContactMethod() != null
+                                ? request.getPreferredContactMethod()
+                                : TicketContactMethod.ANY
+                )
                 .locationOrResource(trimToNull(request.getLocationOrResource()))
                 .status(TicketStatus.OPEN)
                 .createdBy(creator)
@@ -129,8 +128,7 @@ public class TicketServiceImpl implements TicketService {
         TicketStatus next = request.getStatus();
         validateStatusTransition(ticket.getStatus(), next);
         ticket.setStatus(next);
-        if (StringUtils.hasText(request.getResolutionNotes())
-                && (next == TicketStatus.RESOLVED || next == TicketStatus.CLOSED)) {
+        if (StringUtils.hasText(request.getResolutionNotes())) {
             ticket.setResolutionNotes(request.getResolutionNotes().trim());
         }
         ticket = ticketRepository.save(ticket);
@@ -157,6 +155,23 @@ public class TicketServiceImpl implements TicketService {
         ticket.setAssignedTechnician(technician);
         ticket = ticketRepository.save(ticket);
         return mapTicketToResponse(ticket, true);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TechnicianOptionResponse> listAssignableTechnicians(Authentication authentication) {
+        User actor = currentUser(authentication);
+        if (!isAdmin(actor)) {
+            throw new TicketForbiddenException("Only administrators can list technicians");
+        }
+        return userRepository.findByRoleAndEnabledTrueOrderByNameAsc(Role.TECHNICIAN)
+                .stream()
+                .map(u -> TechnicianOptionResponse.builder()
+                        .id(u.getId())
+                        .name(u.getName())
+                        .email(u.getEmail())
+                        .build())
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -252,36 +267,29 @@ public class TicketServiceImpl implements TicketService {
         if (!ALLOWED_EXTENSIONS.contains(ext)) {
             throw new TicketBadRequestException("Invalid image file extension");
         }
-        Path root = Paths.get(uploadDir).toAbsolutePath().normalize();
+        Map<?, ?> uploadResult;
         try {
-            Files.createDirectories(root);
+            uploadResult = cloudinary.uploader().upload(
+                    file.getBytes(),
+                    ObjectUtils.asMap(
+                            "folder", "smart-campus/tickets/" + ticketId,
+                            "resource_type", "image",
+                            "transformation", "f_auto,q_auto:good"
+                    )
+            );
         } catch (IOException e) {
-            throw new TicketBadRequestException("Could not create upload directory");
+            throw new TicketBadRequestException("Failed to upload file");
         }
-        String storedName = UUID.randomUUID() + ext;
-        Path ticketDir = root.resolve(String.valueOf(ticketId)).normalize();
-        if (!ticketDir.startsWith(root)) {
-            throw new TicketBadRequestException("Invalid path");
+        Object secureUrl = uploadResult.get("secure_url");
+        Object publicId = uploadResult.get("public_id");
+        if (secureUrl == null || publicId == null) {
+            throw new TicketBadRequestException("Cloudinary upload did not return expected metadata");
         }
-        try {
-            Files.createDirectories(ticketDir);
-        } catch (IOException e) {
-            throw new TicketBadRequestException("Could not create ticket upload directory");
-        }
-        Path target = ticketDir.resolve(storedName).normalize();
-        if (!target.startsWith(ticketDir)) {
-            throw new TicketBadRequestException("Invalid path");
-        }
-        try (InputStream in = file.getInputStream()) {
-            Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
-            throw new TicketBadRequestException("Failed to store file");
-        }
-        String relativePath = ticketId + "/" + storedName;
         TicketAttachment attachment = TicketAttachment.builder()
                 .ticket(ticket)
                 .fileName(safeFileName(originalName))
-                .filePath(relativePath)
+                .filePath(secureUrl.toString())
+                .cloudinaryPublicId(publicId.toString())
                 .uploadedBy(uploader)
                 .build();
         attachment = ticketAttachmentRepository.save(attachment);
@@ -302,13 +310,14 @@ public class TicketServiceImpl implements TicketService {
         if (!canDelete) {
             throw new TicketForbiddenException("You cannot delete this attachment");
         }
-        Path root = Paths.get(uploadDir).toAbsolutePath().normalize();
-        Path file = root.resolve(attachment.getFilePath()).normalize();
-        if (file.startsWith(root)) {
+        if (StringUtils.hasText(attachment.getCloudinaryPublicId())) {
             try {
-                Files.deleteIfExists(file);
-            } catch (IOException ignored) {
-                // still remove DB row
+                cloudinary.uploader().destroy(
+                        attachment.getCloudinaryPublicId(),
+                        ObjectUtils.asMap("resource_type", "image", "invalidate", true)
+                );
+            } catch (Exception ignored) {
+                // still remove DB row if remote delete fails
             }
         }
         ticketAttachmentRepository.delete(attachment);
@@ -383,6 +392,7 @@ public class TicketServiceImpl implements TicketService {
                 .description(ticket.getDescription())
                 .priority(ticket.getPriority())
                 .preferredContactDetails(ticket.getPreferredContactDetails())
+                .preferredContactMethod(ticket.getPreferredContactMethod())
                 .locationOrResource(ticket.getLocationOrResource())
                 .status(ticket.getStatus())
                 .rejectionReason(ticket.getRejectionReason())
@@ -428,6 +438,7 @@ public class TicketServiceImpl implements TicketService {
                 .id(a.getId())
                 .fileName(a.getFileName())
                 .filePath(a.getFilePath())
+                .cloudinaryPublicId(a.getCloudinaryPublicId())
                 .uploadedById(u.getId())
                 .uploadedByName(u.getName())
                 .uploadedAt(a.getUploadedAt())

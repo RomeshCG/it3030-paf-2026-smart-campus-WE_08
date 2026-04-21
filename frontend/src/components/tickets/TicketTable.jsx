@@ -24,6 +24,7 @@ export default function TicketTable({
             <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">ID</th>
             <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Title</th>
             <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Category</th>
+            <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Assigned technician</th>
             <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Priority</th>
             <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Status</th>
             <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Updated</th>
@@ -43,6 +44,11 @@ export default function TicketTable({
                 <span className="line-clamp-2 font-medium text-slate-900 dark:text-slate-100">{t.title}</span>
               </td>
               <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{t.category}</td>
+              <td className="max-w-[220px] px-4 py-3">
+                <span className="line-clamp-1 text-slate-600 dark:text-slate-400">
+                  {t.assignedTechnicianName || 'Unassigned'}
+                </span>
+              </td>
               <td className="px-4 py-3">
                 <TicketPriorityBadge priority={t.priority} />
               </td>

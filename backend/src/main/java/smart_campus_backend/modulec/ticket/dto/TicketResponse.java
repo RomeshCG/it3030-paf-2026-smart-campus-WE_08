@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import smart_campus_backend.modulec.ticket.TicketCategory;
+import smart_campus_backend.modulec.ticket.TicketContactMethod;
 import smart_campus_backend.modulec.ticket.TicketPriority;
 import smart_campus_backend.modulec.ticket.TicketStatus;
 
@@ -23,6 +24,7 @@ public class TicketResponse {
     private String description;
     private TicketPriority priority;
     private String preferredContactDetails;
+    private TicketContactMethod preferredContactMethod;
     private String locationOrResource;
     private TicketStatus status;
     private String rejectionReason;

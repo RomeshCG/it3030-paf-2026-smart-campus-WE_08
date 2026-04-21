@@ -13,11 +13,13 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import smart_campus_backend.auth.dto.AuthResponse;
 import smart_campus_backend.auth.dto.CurrentUserResponse;
 import smart_campus_backend.auth.dto.InviteRegisterRequest;
 import smart_campus_backend.auth.dto.LoginRequest;
 import smart_campus_backend.auth.dto.RegisterRequest;
+import smart_campus_backend.auth.dto.UpdateProfileRequest;
 import smart_campus_backend.auth.entity.AdminInvite;
 import smart_campus_backend.auth.entity.AuthProvider;
 import smart_campus_backend.auth.entity.InviteStatus;
@@ -41,6 +43,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final CustomUserDetailsService userDetailsService;
     private final AdminInviteRepository adminInviteRepository;
+    private final ProfileImageService profileImageService;
 
     @Value("${google.client-id}")
     private String googleClientId;
@@ -69,6 +72,7 @@ public class AuthService {
                 .userId(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
+                .profileImageUrl(user.getProfileImageUrl())
                 .role(user.getRole().name())
                 .build();
     }
@@ -112,6 +116,7 @@ public class AuthService {
                 .token(token)
                 .name(user.getName())
                 .email(user.getEmail())
+                .profileImageUrl(user.getProfileImageUrl())
                 .role(user.getRole().name())
                 .build();
     }
@@ -142,6 +147,7 @@ public class AuthService {
                 .userId(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
+                .profileImageUrl(user.getProfileImageUrl())
                 .role(user.getRole().name())
                 .build();
     }
@@ -194,6 +200,7 @@ public class AuthService {
                 .userId(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
+                .profileImageUrl(user.getProfileImageUrl())
                 .role(user.getRole().name())
                 .build();
     }
@@ -209,6 +216,74 @@ public class AuthService {
         return CurrentUserResponse.builder()
                 .name(user.getName())
                 .email(user.getEmail())
+                .profileImageUrl(user.getProfileImageUrl())
+                .role(user.getRole().name())
+                .build();
+    }
+
+    public AuthResponse updateCurrentUser(String currentEmail, UpdateProfileRequest request) {
+        String normalizedCurrentEmail = currentEmail.trim().toLowerCase();
+        String normalizedName = request.getName().trim();
+        String normalizedProfileImageUrl = request.getProfileImageUrl() == null
+                ? null
+                : request.getProfileImageUrl().trim();
+
+        User user = userRepository.findByEmail(normalizedCurrentEmail)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        if (!user.isEnabled()) {
+            throw new RuntimeException("User is disabled");
+        }
+
+        user.setName(normalizedName);
+        user.setProfileImageUrl(normalizedProfileImageUrl == null || normalizedProfileImageUrl.isBlank()
+                ? null
+                : normalizedProfileImageUrl);
+        user = userRepository.save(user);
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
+        String token = jwtUtil.generateToken(userDetails);
+
+        return AuthResponse.builder()
+                .token(token)
+                .userId(user.getId())
+                .name(user.getName())
+                .email(user.getEmail())
+                .profileImageUrl(user.getProfileImageUrl())
+                .role(user.getRole().name())
+                .build();
+    }
+
+    public AuthResponse uploadCurrentUserProfileImage(String currentEmail, MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new RuntimeException("Please select an image to upload");
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new RuntimeException("Only image files are allowed");
+        }
+
+        if (file.getSize() > 5L * 1024L * 1024L) {
+            throw new RuntimeException("Profile image must be smaller than 5MB");
+        }
+
+        User user = userRepository.findByEmail(currentEmail.trim().toLowerCase())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        String imageUrl = profileImageService.uploadProfileImage(file, user.getId());
+        user.setProfileImageUrl(imageUrl);
+        user = userRepository.save(user);
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
+        String token = jwtUtil.generateToken(userDetails);
+
+        return AuthResponse.builder()
+                .token(token)
+                .userId(user.getId())
+                .name(user.getName())
+                .email(user.getEmail())
+                .profileImageUrl(user.getProfileImageUrl())
                 .role(user.getRole().name())
                 .build();
     }

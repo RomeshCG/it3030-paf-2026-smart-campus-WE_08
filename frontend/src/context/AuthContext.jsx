@@ -31,6 +31,7 @@ export function AuthProvider({ children }) {
     const userPayload = {
       name: data.name,
       email: data.email,
+      profileImageUrl: data.profileImageUrl ?? null,
       role: normalizedRole,
       ...(Number.isFinite(id) ? { id } : {}),
     };
@@ -42,8 +43,18 @@ export function AuthProvider({ children }) {
 
   const syncSessionUser = useCallback((data) => {
     const normalizedRole = normalizeRole(data.role);
-    localStorage.setItem('user', JSON.stringify({ name: data.name, email: data.email, role: normalizedRole }));
-    setUser({ name: data.name, email: data.email, role: normalizedRole });
+    const stored = localStorage.getItem('user');
+    const parsed = stored ? JSON.parse(stored) : {};
+    const currentId = Number.isFinite(Number(parsed.id)) ? Number(parsed.id) : undefined;
+    const userPayload = {
+      name: data.name,
+      email: data.email,
+      profileImageUrl: data.profileImageUrl ?? parsed.profileImageUrl ?? null,
+      role: normalizedRole,
+      ...(currentId != null ? { id: currentId } : {}),
+    };
+    localStorage.setItem('user', JSON.stringify(userPayload));
+    setUser(userPayload);
   }, []);
 
   const register = useCallback(async (name, email, password) => {
@@ -70,6 +81,22 @@ export function AuthProvider({ children }) {
     return res.data;
   }, [saveSession]);
 
+  const updateProfile = useCallback(async (name, profileImageUrl) => {
+    const res = await api.put('/api/auth/me', { name, profileImageUrl });
+    saveSession(res.data);
+    return res.data;
+  }, [saveSession]);
+
+  const uploadProfileImage = useCallback(async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await api.post('/api/auth/me/profile-image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    saveSession(res.data);
+    return res.data;
+  }, [saveSession]);
+
   const logout = useCallback(() => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -78,7 +105,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, token, register, registerWithInvite, login, loginWithGoogle, logout, syncSessionUser }}>
+    <AuthContext.Provider value={{ user, token, register, registerWithInvite, login, loginWithGoogle, updateProfile, uploadProfileImage, logout, syncSessionUser }}>
       {children}
     </AuthContext.Provider>
   );

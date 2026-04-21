@@ -20,7 +20,9 @@ import {
   SidebarSeparator,
 } from '@/components/ui/sidebar';
 import {
+  BarChart3,
   BookOpen,
+  Building2,
   ChevronDown,
   ChevronRight,
   GraduationCap,
@@ -35,34 +37,23 @@ import {
   Wrench,
 } from 'lucide-react';
 
-const CORE_NAV = [
+const WORKSPACE_NAV = [
   { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { key: 'bookings', label: 'Bookings', icon: BookOpen },
+  { key: 'catalogue', label: 'Catalogue', icon: Building2 },
+  { key: 'bookings', label: 'My Bookings', icon: BookOpen },
   { key: 'tickets', label: 'Tickets', icon: LifeBuoy },
 ];
 
-const SUPER_ADMIN_NAV = [
-  { key: 'tickets', label: 'Tickets', icon: LifeBuoy },
-  {
-    key: 'user-management',
-    label: 'User Management',
-    icon: Users,
-  },
-  {
-    key: 'admin-management',
-    label: 'Admin Management',
-    icon: ShieldCheck,
-  },
-  {
-    key: 'admin-invites',
-    label: 'Admin Invites',
-    icon: MailPlus,
-  },
-  {
-    key: 'super-admin-management',
-    label: 'Super Admin Management',
-    icon: ShieldUser,
-  },
+const ADMIN_NAV = [
+  { key: 'manage-bookings', label: 'Manage Bookings', icon: ShieldCheck },
+  { key: 'analytics', label: 'Analytics', icon: BarChart3 },
+];
+
+const SUPER_ADMIN_ACCESS_NAV = [
+  { key: 'user-management', label: 'Users', icon: Users },
+  { key: 'admin-management', label: 'Admins', icon: ShieldCheck },
+  { key: 'super-admin-management', label: 'Super Admins', icon: ShieldUser },
+  { key: 'admin-invites', label: 'Admin Invites', icon: MailPlus },
 ];
 
 export function AppSidebar({
@@ -73,8 +64,8 @@ export function AppSidebar({
   onSettings,
   ...props
 }) {
-  const navItems = role === 'SUPER_ADMIN' ? SUPER_ADMIN_NAV : CORE_NAV;
-  const [isUserManagementOpen, setIsUserManagementOpen] = useState(true);
+  const [isAccessOpen, setIsAccessOpen] = useState(true);
+  const isAdminLike = role === 'ADMIN' || role === 'SUPER_ADMIN';
   const serviceItems = role === 'TECHNICIAN'
     ? [{ key: 'technician', label: 'Technician', icon: Wrench }]
     : role === 'ADMIN'
@@ -115,22 +106,64 @@ export function AppSidebar({
 
       <SidebarContent>
         <SidebarGroup>
-          {role === 'SUPER_ADMIN' ? (
-            <>
-              <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel>Workspace</SidebarGroupLabel>
+          <SidebarMenu>
+            {WORKSPACE_NAV.map((item) => (
+              <SidebarMenuItem key={item.key}>
+                <SidebarMenuButton
+                  isActive={activeNav === item.key}
+                  tooltip={item.label}
+                  onClick={() => handleNav(item.key)}
+                >
+                  <item.icon />
+                  <span>{item.label}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </SidebarGroup>
+
+        {isAdminLike ? (
+          <>
+            <SidebarSeparator />
+            <SidebarGroup>
+              <SidebarGroupLabel>Administration</SidebarGroupLabel>
+              <SidebarMenu>
+                {ADMIN_NAV.map((item) => (
+                  <SidebarMenuItem key={item.key}>
+                    <SidebarMenuButton
+                      isActive={activeNav === item.key}
+                      tooltip={item.label}
+                      onClick={() => handleNav(item.key)}
+                    >
+                      <item.icon />
+                      <span>{item.label}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroup>
+          </>
+        ) : null}
+
+        {role === 'SUPER_ADMIN' ? (
+          <>
+            <SidebarSeparator />
+            <SidebarGroup>
+              <SidebarGroupLabel>Access Control</SidebarGroupLabel>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <Collapsible open={isUserManagementOpen} onOpenChange={setIsUserManagementOpen}>
+                  <Collapsible open={isAccessOpen} onOpenChange={setIsAccessOpen}>
                     <CollapsibleTrigger asChild>
-                      <SidebarMenuButton tooltip="User Management">
+                      <SidebarMenuButton tooltip="Access Control">
                         <Users />
-                        <span>User Management</span>
-                        {isUserManagementOpen ? <ChevronDown className="ml-auto size-4" /> : <ChevronRight className="ml-auto size-4" />}
+                        <span>User & Role Management</span>
+                        {isAccessOpen ? <ChevronDown className="ml-auto size-4" /> : <ChevronRight className="ml-auto size-4" />}
                       </SidebarMenuButton>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
                       <SidebarMenuSub>
-                        {navItems.map((item) => (
+                        {SUPER_ADMIN_ACCESS_NAV.map((item) => (
                           <SidebarMenuSubItem key={item.key}>
                             <SidebarMenuSubButton
                               isActive={activeNav === item.key}
@@ -146,27 +179,9 @@ export function AppSidebar({
                   </Collapsible>
                 </SidebarMenuItem>
               </SidebarMenu>
-            </>
-          ) : (
-            <>
-              <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-              <SidebarMenu>
-                {navItems.map((item) => (
-                  <SidebarMenuItem key={item.key}>
-                    <SidebarMenuButton
-                      isActive={activeNav === item.key}
-                      tooltip={item.label}
-                      onClick={() => handleNav(item.key)}
-                    >
-                      <item.icon />
-                      <span>{item.label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </>
-          )}
-        </SidebarGroup>
+            </SidebarGroup>
+          </>
+        ) : null}
 
         {serviceItems.length > 0 ? (
           <>

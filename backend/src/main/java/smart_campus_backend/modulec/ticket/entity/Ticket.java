@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import smart_campus_backend.auth.entity.User;
 import smart_campus_backend.modulec.ticket.TicketCategory;
+import smart_campus_backend.modulec.ticket.TicketContactMethod;
 import smart_campus_backend.modulec.ticket.TicketPriority;
 import smart_campus_backend.modulec.ticket.TicketStatus;
 
@@ -40,6 +41,11 @@ public class Ticket {
 
     @Column(length = 500)
     private String preferredContactDetails;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private TicketContactMethod preferredContactMethod = TicketContactMethod.ANY;
 
     @Column(length = 500)
     private String locationOrResource;

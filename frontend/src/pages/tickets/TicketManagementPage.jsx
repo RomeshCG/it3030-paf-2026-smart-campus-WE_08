@@ -4,10 +4,10 @@ import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import AssignmentPanel from '@/components/tickets/AssignmentPanel';
+import TicketCreateSheet from '@/components/tickets/TicketCreateSheet';
 import TicketFilters from '@/components/tickets/TicketFilters';
 import TicketTable from '@/components/tickets/TicketTable';
 import { filterTicketsLocal } from '@/lib/ticketFilters';
-import { getApiErrorMessage } from '@/lib/getApiErrorMessage';
 import { ticketsApi } from '@/services/ticketsApi';
 
 export default function TicketManagementPage() {
@@ -65,9 +65,7 @@ export default function TicketManagementPage() {
           </h2>
           <p className="text-sm text-slate-600 dark:text-slate-400">{title}</p>
         </div>
-        <Button variant="outline" type="button" onClick={() => navigate('/tickets/new')}>
-          Log new ticket
-        </Button>
+        <TicketCreateSheet triggerLabel="Log new ticket" triggerVariant="outline" onCreated={() => load()} />
       </div>
 
       <TicketFilters
@@ -121,13 +119,25 @@ export default function TicketManagementPage() {
                   <CardTitle className="text-base">#{selected.id}</CardTitle>
                   <CardDescription className="line-clamp-2">{selected.title}</CardDescription>
                 </CardHeader>
-                <CardContent className="flex flex-wrap gap-2">
+                <CardContent className="space-y-3">
+                  <div className="rounded-md border border-slate-200 bg-slate-50/70 p-3 text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-300">
+                    <p>
+                      <span className="font-medium text-slate-800 dark:text-slate-100">Assigned:</span>{' '}
+                      {selected.assignedTechnicianName || 'Unassigned'}
+                    </p>
+                    <p className="mt-1">
+                      <span className="font-medium text-slate-800 dark:text-slate-100">Requester:</span>{' '}
+                      {selected.createdByName || 'Unknown user'}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
                   <Button size="sm" variant="secondary" type="button" onClick={() => navigate(`/tickets/${selected.id}`)}>
                     Open full detail
                   </Button>
                   <Button size="sm" variant="ghost" type="button" onClick={() => setSelected(null)}>
                     Clear
                   </Button>
+                  </div>
                 </CardContent>
               </Card>
               <AssignmentPanel ticket={selected} role={role} onUpdated={load} />

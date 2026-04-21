@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import TicketCreateSheet from '@/components/tickets/TicketCreateSheet';
 import TicketFilters from '@/components/tickets/TicketFilters';
 import TicketTable from '@/components/tickets/TicketTable';
 import { filterTicketsLocal } from '@/lib/ticketFilters';
@@ -48,9 +49,7 @@ export default function MyTicketsPage() {
           <h2 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">My tickets</h2>
           <p className="text-sm text-slate-600 dark:text-slate-400">Track requests you have submitted.</p>
         </div>
-        <Button asChild>
-          <Link to="/tickets/new">Create ticket</Link>
-        </Button>
+        <TicketCreateSheet triggerLabel="Create ticket" onCreated={() => load()} />
       </div>
 
       <TicketFilters

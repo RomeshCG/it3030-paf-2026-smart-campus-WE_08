@@ -5,6 +5,8 @@ import { ResourceForm } from './ResourceForm';
 import { Plus, Edit2, Trash2, MapPin, Users, Activity, RefreshCw, Layers, Eye, Download, PieChart, CheckCircle, AlertCircle, Shield, FileDown, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { ADMIN_ROLES } from '../constants/roles';
 
 export const ResourceList = () => {
   const [resources, setResources] = useState([]);
@@ -13,9 +15,6 @@ export const ResourceList = () => {
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   
-  // Role-based UI
-  const [userRole, setUserRole] = useState('ADMIN');
-
   // Filters & Search
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -30,6 +29,8 @@ export const ResourceList = () => {
   const [resourceToDelete, setResourceToDelete] = useState(undefined);
   
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = ADMIN_ROLES.includes(user?.role);
 
   const fetchStats = async () => {
     try {
@@ -48,7 +49,7 @@ export const ResourceList = () => {
         size,
         type: typeFilter || undefined,
         status: statusFilter || undefined,
-        capacity: capacityFilter || undefined,
+        minCapacity: capacityFilter || undefined,
         name: searchFilter || undefined
       });
       setResources(data.content || []);
@@ -149,15 +150,8 @@ export const ResourceList = () => {
         <h1 className="page-title" style={{ margin: 0 }}>Facilities & Assets Catalogue</h1>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           <span className="badge" style={{ background: 'var(--accent-color)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Shield size={14} /> Mode: {userRole}
+            <Shield size={14} /> Role: {user?.role ?? 'USER'}
           </span>
-          <button 
-            className="btn btn-secondary" 
-            style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
-            onClick={() => setUserRole(r => r === 'ADMIN' ? 'USER' : 'ADMIN')}
-          >
-            Switch Role
-          </button>
         </div>
       </div>
       
@@ -238,9 +232,11 @@ export const ResourceList = () => {
             <button className="btn btn-secondary" onClick={exportToCSV}>
               <FileDown size={18} /> Export CSV
             </button>
-            <button className="btn btn-primary" onClick={handleCreate}>
-              <Plus size={18} /> Add Resource
-            </button>
+            {isAdmin && (
+              <button className="btn btn-primary" onClick={handleCreate}>
+                <Plus size={18} /> Add Resource
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -317,16 +313,16 @@ export const ResourceList = () => {
               </div>
             </div>
 
-            <div className="card-actions" style={{ display: 'grid', gridTemplateColumns: userRole === 'ADMIN' ? '1fr 1fr' : '1fr', gap: '0.5rem', marginTop: '1.5rem' }}>
+            <div className="card-actions" style={{ display: 'grid', gridTemplateColumns: isAdmin ? '1fr 1fr' : '1fr', gap: '0.5rem', marginTop: '1.5rem' }}>
               <button 
                 className="btn btn-primary" 
-                style={{ gridColumn: userRole === 'ADMIN' ? 'span 2' : 'span 1', padding: '0.6rem' }}
+                style={{ gridColumn: isAdmin ? 'span 2' : 'span 1', padding: '0.6rem' }}
                 onClick={() => handleViewDetails(res.id)}
               >
                 <Eye size={16} /> View Details
               </button>
               
-              {userRole === 'ADMIN' && (
+              {isAdmin && (
                 <>
                   <button 
                     className="btn btn-secondary" 
@@ -348,7 +344,7 @@ export const ResourceList = () => {
               {res.downloadUrl && (
                 <button 
                   className="btn btn-secondary" 
-                  style={{ gridColumn: userRole === 'ADMIN' ? 'span 2' : 'span 1', padding: '0.6rem', color: 'var(--success)' }}
+                  style={{ gridColumn: isAdmin ? 'span 2' : 'span 1', padding: '0.6rem', color: 'var(--success)' }}
                   onClick={(e) => { e.stopPropagation(); window.open(res.downloadUrl, '_blank'); }}
                 >
                   <Download size={16} /> Fast Download

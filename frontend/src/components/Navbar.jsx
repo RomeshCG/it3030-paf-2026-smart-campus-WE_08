@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { NotificationBell } from './NotificationBell';
-import { Layout, Calendar, BarChart3, Shield } from 'lucide-react';
+import { Layout } from 'lucide-react';
 
 export const Navbar = () => {
     const location = useLocation();
@@ -25,17 +25,8 @@ export const Navbar = () => {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
                 <div style={{ display: 'flex', gap: '1.5rem' }}>
-                    <NavLink to="/" active={location.pathname === '/'}>
-                        <Layout size={18} /> Catalogue
-                    </NavLink>
-                    <NavLink to="/bookings/my" active={location.pathname === '/bookings/my'}>
-                        <Calendar size={18} /> My Bookings
-                    </NavLink>
-                    <NavLink to="/admin/analytics" active={location.pathname === '/admin/analytics'}>
-                        <BarChart3 size={18} /> Analytics
-                    </NavLink>
-                    <NavLink to="/admin/bookings" active={location.pathname === '/admin/bookings'}>
-                        <Shield size={18} /> Manage Bookings
+                    <NavLink to="/dashboard" active={location.pathname === '/dashboard'}>
+                        <Layout size={18} /> Dashboard
                     </NavLink>
                 </div>
                 
