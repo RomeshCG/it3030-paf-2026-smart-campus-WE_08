@@ -97,6 +97,7 @@ public class BookingService {
                 .usedCapacity(safeUsed)
                 .remainingCapacity(remaining)
                 .available(remaining > 0)
+                .countedStatuses(CAPACITY_COUNTABLE_STATUSES.stream().map(Enum::name).collect(Collectors.toList()))
                 .build();
     }
 

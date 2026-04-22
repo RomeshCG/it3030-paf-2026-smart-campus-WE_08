@@ -65,6 +65,7 @@ export const getTimeSlotAvailability = async ({ resourceId, date, startTime, end
             used: Number(data?.usedCapacity || 0),
             remaining: Number(data?.remainingCapacity || 0),
             isAvailable: Boolean(data?.available),
+            countedStatuses: Array.isArray(data?.countedStatuses) ? data.countedStatuses : ['PENDING', 'APPROVED'],
             source: 'server',
         };
     } catch (error) {
@@ -76,6 +77,7 @@ export const getTimeSlotAvailability = async ({ resourceId, date, startTime, end
         used: 0,
         remaining: Number(totalCapacity || 0),
         isAvailable: true,
+        countedStatuses: ['PENDING', 'APPROVED'],
         source: 'all',
     };
 

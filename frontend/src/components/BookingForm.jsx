@@ -189,6 +189,11 @@ export const BookingForm = ({ resource, onClose, onSuccess }) => {
                                             Availability estimate is based on your bookings only.
                                         </div>
                                     )}
+                                    <div style={{ marginTop: '0.45rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                                        Capacity currently counts{' '}
+                                        <strong>{(availability?.countedStatuses || ['PENDING', 'APPROVED']).join(' + ')}</strong>{' '}
+                                        bookings. Rejected and cancelled requests do not consume seats.
+                                    </div>
                                 </>
                             )}
                         </div>

@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -21,4 +22,5 @@ public class BookingAvailabilityResponse {
     private Integer usedCapacity;
     private Integer remainingCapacity;
     private Boolean available;
+    private List<String> countedStatuses;
 }
