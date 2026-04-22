@@ -21,6 +21,11 @@ export const BookingForm = ({ resource, onClose, onSuccess }) => {
     const requestedExceedsCapacity = attendees > resourceCapacity;
     const requestedExceedsRemaining = availability && attendees > availability.remaining;
     const hasStrictAvailability = availability?.source !== 'mine';
+    const predictedRemaining = availability
+        ? Math.max((availability.remaining ?? resourceCapacity) - attendees, 0)
+        : Math.max(resourceCapacity - attendees, 0);
+    const lowCapacityThreshold = Math.max(Math.floor(resourceCapacity * 0.2), 1);
+    const isLowCapacity = availability && (availability.remaining <= lowCapacityThreshold);
     const shouldBlockSubmit = loading
         || availabilityLoading
         || isTimeRangeInvalid
@@ -169,6 +174,16 @@ export const BookingForm = ({ resource, onClose, onSuccess }) => {
                                         <div><strong>{availability?.used ?? 0}</strong><div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Booked</div></div>
                                         <div><strong>{availability?.remaining ?? resourceCapacity}</strong><div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Remaining</div></div>
                                     </div>
+                                    <div style={{ marginTop: '0.7rem', fontSize: '0.82rem' }}>
+                                        This request consumes <strong>{attendees}</strong> seat(s). Remaining after request:{' '}
+                                        <strong>{predictedRemaining}</strong>.
+                                    </div>
+                                    {isLowCapacity && (
+                                        <div style={{ marginTop: '0.45rem', fontSize: '0.78rem', color: 'var(--warning)' }}>
+                                            <AlertTriangle size={12} style={{ display: 'inline', marginRight: 4 }} />
+                                            Low slot availability. Only {availability.remaining} seat(s) left.
+                                        </div>
+                                    )}
                                     {availability?.source === 'mine' && (
                                         <div style={{ marginTop: '0.6rem', fontSize: '0.78rem', color: 'var(--warning)' }}>
                                             <AlertTriangle size={12} style={{ display: 'inline', marginRight: 4 }} />
