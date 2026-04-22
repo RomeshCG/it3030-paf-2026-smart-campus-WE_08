@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { BookingCalendar } from './BookingCalendar';
-import { createBooking } from '../api/bookingApi';
-import { Users, FileText, Clock, Check } from 'lucide-react';
+import { createBooking, getTimeSlotAvailability } from '../api/bookingApi';
+import { Users, FileText, Clock, Check, AlertTriangle } from 'lucide-react';
+import { getResourceCapacity } from '../types/resource';
 import toast from 'react-hot-toast';
 
 export const BookingForm = ({ resource, onClose, onSuccess }) => {
@@ -11,14 +12,76 @@ export const BookingForm = ({ resource, onClose, onSuccess }) => {
     const [purpose, setPurpose] = useState('');
     const [attendees, setAttendees] = useState(1);
     const [loading, setLoading] = useState(false);
+    const [availability, setAvailability] = useState(null);
+    const [availabilityLoading, setAvailabilityLoading] = useState(false);
+
+    const selectedDateStr = useMemo(() => selectedDate.toISOString().split('T')[0], [selectedDate]);
+    const resourceCapacity = useMemo(() => getResourceCapacity(resource), [resource]);
+    const isTimeRangeInvalid = useMemo(() => startTime >= endTime, [startTime, endTime]);
+    const requestedExceedsCapacity = attendees > resourceCapacity;
+    const requestedExceedsRemaining = availability && attendees > availability.remaining;
+    const shouldBlockSubmit = loading
+        || availabilityLoading
+        || isTimeRangeInvalid
+        || requestedExceedsCapacity
+        || (availability?.source === 'all' && requestedExceedsRemaining);
+
+    useEffect(() => {
+        let isMounted = true;
+        const fetchAvailability = async () => {
+            if (!resource?.id || isTimeRangeInvalid) {
+                setAvailability(null);
+                return;
+            }
+            setAvailabilityLoading(true);
+            try {
+                const data = await getTimeSlotAvailability({
+                    resourceId: resource.id,
+                    date: selectedDateStr,
+                    startTime,
+                    endTime,
+                    totalCapacity: resourceCapacity,
+                });
+                if (isMounted) {
+                    setAvailability(data);
+                }
+            } catch (error) {
+                if (isMounted) {
+                    setAvailability(null);
+                }
+            } finally {
+                if (isMounted) {
+                    setAvailabilityLoading(false);
+                }
+            }
+        };
+        fetchAvailability();
+        return () => {
+            isMounted = false;
+        };
+    }, [resource?.id, selectedDateStr, startTime, endTime, resourceCapacity, isTimeRangeInvalid]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (isTimeRangeInvalid) {
+            toast.error('End time must be later than start time.');
+            return;
+        }
+        if (requestedExceedsCapacity) {
+            toast.error(`Attendees cannot exceed maximum capacity (${resourceCapacity}).`);
+            return;
+        }
+        if (availability?.source === 'all' && requestedExceedsRemaining) {
+            toast.error(`Only ${availability.remaining} seat(s) remaining for this slot.`);
+            return;
+        }
+
         setLoading(true);
 
         const bookingData = {
             resourceId: resource.id,
-            date: selectedDate.toISOString().split('T')[0],
+            date: selectedDateStr,
             startTime,
             endTime,
             purpose,
@@ -81,6 +144,39 @@ export const BookingForm = ({ resource, onClose, onSuccess }) => {
                                 />
                             </div>
                         </div>
+                        {isTimeRangeInvalid && (
+                            <div className="error-text">End time must be later than start time.</div>
+                        )}
+
+                        <div
+                            style={{
+                                border: '1px solid var(--border-color)',
+                                borderRadius: '8px',
+                                padding: '0.85rem',
+                                background: 'var(--bg-primary)',
+                            }}
+                        >
+                            <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>
+                                Time-Slot Capacity ({selectedDateStr} | {startTime} - {endTime})
+                            </div>
+                            {availabilityLoading ? (
+                                <div style={{ fontSize: '0.9rem' }}>Checking availability...</div>
+                            ) : (
+                                <>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '0.5rem' }}>
+                                        <div><strong>{resourceCapacity}</strong><div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Total</div></div>
+                                        <div><strong>{availability?.used ?? 0}</strong><div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Booked</div></div>
+                                        <div><strong>{availability?.remaining ?? resourceCapacity}</strong><div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Remaining</div></div>
+                                    </div>
+                                    {availability?.source === 'mine' && (
+                                        <div style={{ marginTop: '0.6rem', fontSize: '0.78rem', color: 'var(--warning)' }}>
+                                            <AlertTriangle size={12} style={{ display: 'inline', marginRight: 4 }} />
+                                            Availability estimate is based on your bookings only.
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
 
                         <div className="form-group">
                             <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}><Users size={12} /> Attendees</label>
@@ -89,9 +185,17 @@ export const BookingForm = ({ resource, onClose, onSuccess }) => {
                                 className="form-control" 
                                 min="1" 
                                 value={attendees} 
-                                onChange={(e) => setAttendees(parseInt(e.target.value))} 
+                                onChange={(e) => setAttendees(Math.max(1, Number.parseInt(e.target.value || '1', 10) || 1))} 
                                 required 
                             />
+                            {requestedExceedsCapacity && (
+                                <div className="error-text">Attendees exceed maximum capacity ({resourceCapacity}).</div>
+                            )}
+                            {availability?.source === 'all' && requestedExceedsRemaining && (
+                                <div className="error-text">
+                                    Requested attendees exceed remaining seats ({availability.remaining}) for this slot.
+                                </div>
+                            )}
                         </div>
 
                         <div className="form-group">
@@ -108,7 +212,7 @@ export const BookingForm = ({ resource, onClose, onSuccess }) => {
 
                         <div style={{ marginTop: 'auto', display: 'flex', gap: '1rem' }}>
                             <button type="button" className="btn btn-secondary" onClick={onClose} style={{ flex: 1 }}>Cancel</button>
-                            <button type="submit" className="btn btn-primary" disabled={loading} style={{ flex: 2 }}>
+                            <button type="submit" className="btn btn-primary" disabled={shouldBlockSubmit} style={{ flex: 2 }}>
                                 {loading ? <div className="spinner-small"></div> : <><Check size={18}/> Send Request</>}
                             </button>
                         </div>
