@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import smart_campus_backend.auth.entity.User;
+import smart_campus_backend.booking.dto.ApproveBookingRequest;
 import smart_campus_backend.booking.dto.BookingAvailabilityResponse;
 import smart_campus_backend.booking.dto.BookingRequest;
 import smart_campus_backend.booking.dto.BookingResponse;
@@ -139,7 +140,7 @@ public class BookingService {
     }
 
     @Transactional
-    public BookingResponse approveBooking(Long id) {
+    public BookingResponse approveBooking(Long id, ApproveBookingRequest request) {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Booking not found"));
 
@@ -161,15 +162,24 @@ public class BookingService {
         );
         int safeApprovedSeats = approvedSeats == null ? 0 : approvedSeats;
         int remainingSeats = Math.max(booking.getResource().getCapacity() - safeApprovedSeats, 0);
-        if (booking.getAttendees() > remainingSeats) {
+        boolean forceOverride = request != null && Boolean.TRUE.equals(request.getForceOverride());
+        String overrideReason = request == null ? null : request.getOverrideReason();
+        boolean wouldExceedCapacity = booking.getAttendees() > remainingSeats;
+
+        if (wouldExceedCapacity && !forceOverride) {
             throw new IllegalStateException(
                     "Cannot approve booking. Only " + remainingSeats + " seat(s) remaining in this slot."
             );
         }
+        if (wouldExceedCapacity && forceOverride && (overrideReason == null || overrideReason.trim().isEmpty())) {
+            throw new IllegalArgumentException("Override reason is required when approving over capacity");
+        }
 
         booking.setStatus(BookingStatus.APPROVED);
+        booking.setCapacityOverridden(wouldExceedCapacity && forceOverride);
+        booking.setOverrideReason(wouldExceedCapacity && forceOverride ? overrideReason.trim() : null);
         Booking saved = bookingRepository.save(booking);
-        createAuditLog(saved, "APPROVED", "ADMIN");
+        createAuditLog(saved, booking.getCapacityOverridden() ? "APPROVED_OVERRIDE" : "APPROVED", "ADMIN");
         notificationService.createNotification(booking.getUser(), "Your booking for " + booking.getResource().getName() + " on " + booking.getDate() + " has been APPROVED.");
         return mapToResponse(saved);
     }
@@ -230,6 +240,8 @@ public class BookingService {
                 .attendees(booking.getAttendees())
                 .status(booking.getStatus())
                 .rejectionReason(booking.getRejectionReason())
+                .capacityOverridden(Boolean.TRUE.equals(booking.getCapacityOverridden()))
+                .overrideReason(booking.getOverrideReason())
                 .build();
     }
 }

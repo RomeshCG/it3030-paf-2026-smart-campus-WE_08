@@ -15,8 +15,8 @@ export const getAllBookings = async () => {
     return data;
 };
 
-export const approveBooking = async (id) => {
-    const { data } = await api.put(`/api/bookings/${id}/approve`);
+export const approveBooking = async (id, payload = {}) => {
+    const { data } = await api.put(`/api/bookings/${id}/approve`, payload);
     return data;
 };
 

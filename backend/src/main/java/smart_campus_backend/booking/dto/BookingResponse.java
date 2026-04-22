@@ -27,4 +27,6 @@ public class BookingResponse {
     private Integer attendees;
     private BookingStatus status;
     private String rejectionReason;
+    private Boolean capacityOverridden;
+    private String overrideReason;
 }

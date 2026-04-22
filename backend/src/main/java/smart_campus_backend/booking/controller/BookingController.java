@@ -12,6 +12,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 import smart_campus_backend.auth.entity.User;
 import smart_campus_backend.auth.repository.UserRepository;
+import smart_campus_backend.booking.dto.ApproveBookingRequest;
 import smart_campus_backend.booking.dto.BookingAvailabilityResponse;
 import smart_campus_backend.booking.dto.BookingRequest;
 import smart_campus_backend.booking.dto.BookingResponse;
@@ -64,8 +65,10 @@ public class BookingController {
 
     @PutMapping("/{id}/approve")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public ResponseEntity<BookingResponse> approveBooking(@PathVariable Long id) {
-        return ResponseEntity.ok(bookingService.approveBooking(id));
+    public ResponseEntity<BookingResponse> approveBooking(
+            @PathVariable Long id,
+            @RequestBody(required = false) ApproveBookingRequest request) {
+        return ResponseEntity.ok(bookingService.approveBooking(id, request));
     }
 
     @PutMapping("/{id}/reject")
