@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, Users, Download, Activity, Calendar, ShieldCheck, Database, Clock, Info } from 'lucide-react';
+import { ArrowLeft, MapPin, Users, Download, Calendar, ShieldCheck, Database, Clock, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { BookingForm } from './BookingForm';
 import { getResourceById } from '../api/resourceApi';
@@ -41,91 +41,101 @@ export const ResourceDetails = () => {
 
     return (
         <div className="details-page animate-fade">
-            <button className="btn btn-secondary" style={{ marginBottom: '2rem' }} onClick={() => navigate('/')}>
+            <button className="btn btn-secondary details-back-btn" onClick={() => navigate('/')}>
                 <ArrowLeft size={18} /> Back to Catalogue
             </button>
 
-            <div className="details-hero">
-                {resource.imageUrl ? (
-                    <img src={resource.imageUrl} alt={resource.name} />
-                ) : (
-                    <div className="placeholder-img" style={{ fontSize: '5rem' }}>{resource.name.charAt(0)}</div>
-                )}
-            </div>
+            <div className="details-layout">
+                <section className="details-main">
+                    <div className="details-hero">
+                        {resource.imageUrl ? (
+                            <img src={resource.imageUrl} alt={resource.name} />
+                        ) : (
+                            <div className="placeholder-img" style={{ fontSize: '5rem' }}>{resource.name.charAt(0)}</div>
+                        )}
 
-            <div className="details-header">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1rem' }}>
-                    <div>
-                        <span className={`badge type-badge-static badge-${resource.type.toLowerCase()}`} style={{ marginRight: '1rem' }}>
-                            {resource.type}
-                        </span>
-                        <h1 style={{ margin: '0.5rem 0 0 0', fontSize: '3rem', fontWeight: 800 }}>{resource.name}</h1>
+                        <div className="details-hero-overlay">
+                            <span className="details-chip">{resource.type.replace('_', ' ')}</span>
+                            <span className={`details-chip ${resource.status === 'ACTIVE' ? 'chip-active' : 'chip-out'}`}>
+                                {resource.status.replace('_', ' ')}
+                            </span>
+                            <h1>{resource.name}</h1>
+                        </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '1rem' }}>
-                        <span className={`badge`} style={{ 
-                            background: resource.status === 'ACTIVE' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                            color: resource.status === 'ACTIVE' ? 'var(--success)' : 'var(--danger)',
-                            fontSize: '1rem', padding: '0.5rem 1rem', border: `1px solid ${resource.status === 'ACTIVE' ? 'var(--success)' : 'var(--danger)'}`
-                        }}>
-                            {resource.status.replace('_', ' ')}
-                        </span>
+
+                    <div className="details-info-cards">
+                        <article className="details-info-card">
+                            <span className="details-label"><MapPin size={14} /> Location</span>
+                            <strong>{resource.location}</strong>
+                        </article>
+                        <article className="details-info-card">
+                            <span className="details-label"><Users size={14} /> Capacity</span>
+                            <strong>{resource.capacity} Workstations</strong>
+                        </article>
+                        <article className="details-info-card">
+                            <span className="details-label"><Clock size={14} /> Availability</span>
+                            <strong>{resource.available ? 'Mon-Fri 08:00 - 20:00' : 'Currently unavailable'}</strong>
+                        </article>
                     </div>
-                </div>
-            </div>
 
-            <div className="details-info animate-slide">
-                <div className="info-item">
-                    <span className="info-label"><MapPin size={14} style={{ display: 'inline', marginRight: '4px' }}/> Location</span>
-                    <span className="info-value">{resource.location}</span>
-                </div>
-                <div className="info-item">
-                    <span className="info-label"><Users size={14} style={{ display: 'inline', marginRight: '4px' }}/> Capacity</span>
-                    <span className="info-value">{resource.capacity} Persons</span>
-                </div>
-                <div className="info-item">
-                    <span className="info-label"><Activity size={14} style={{ display: 'inline', marginRight: '4px' }}/> Availability</span>
-                    <span className="info-value" style={{ color: resource.available ? 'var(--success)' : 'var(--danger)' }}>
-                        {resource.available ? <CheckCircle size={18}/> : <AlertCircle size={18}/>}
-                        {resource.available ? 'Ready for Booking' : 'Not Available'}
-                    </span>
-                </div>
-                <div className="info-item">
-                    <span className="info-label"><Calendar size={14} style={{ display: 'inline', marginRight: '4px' }}/> Registered</span>
-                    <span className="info-value" style={{ fontSize: '1rem' }}>
-                        {resource.createdAt ? new Date(resource.createdAt).toLocaleDateString(undefined, { dateStyle: 'long' }) : 'N/A'}
-                    </span>
-                </div>
-            </div>
+                    <section className="glass-panel details-description">
+                        <h3><Database size={19} /> Resource Description</h3>
+                        <p>
+                            {resource.description || 'No detailed description available for this resource.'}
+                        </p>
+                        <ul className="details-feature-list">
+                            <li><CheckCircle2 size={14} /> Booking capacity checks enabled</li>
+                            <li><CheckCircle2 size={14} /> Access visibility by live status</li>
+                            <li><CheckCircle2 size={14} /> Scheduling integrated with booking approvals</li>
+                            <li><CheckCircle2 size={14} /> Real-time availability messaging in forms</li>
+                        </ul>
+                    </section>
+                </section>
 
-            <div style={{ marginTop: '3rem', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 300px', gap: '3rem' }}>
-                <div>
-                    <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <Database size={20} style={{ color: 'var(--accent-color)' }}/> Resource Description
-                    </h3>
-                    <p style={{ color: 'var(--text-secondary)', lineHeight: '1.8', fontSize: '1.1rem' }}>
-                        {resource.description || "No detailed description available for this resource."}
-                    </p>
-                </div>
-
-                <div className="glass-panel" style={{ padding: '1.5rem', alignSelf: 'start' }}>
-                    <h4 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <ShieldCheck size={18} /> Quick Actions
-                    </h4>
-                    {resource.downloadUrl && (
-                        <button className="btn btn-primary" style={{ width: '100%', marginBottom: '1rem' }} onClick={() => window.open(resource.downloadUrl, '_blank')}>
-                            <Download size={18} /> Download Info
+                <aside className="details-aside">
+                    <div className="glass-panel quick-actions">
+                        <h4><ShieldCheck size={17} /> Quick Actions</h4>
+                        <p>Manage this resource for your upcoming usage.</p>
+                        <button
+                            className="btn btn-primary quick-btn"
+                            onClick={() => setIsBookingOpen(true)}
+                        >
+                            <Calendar size={16} /> Schedule Resource
                         </button>
-                    )}
-                    <button 
-                        className="btn btn-secondary" 
-                        style={{ width: '100%' }} 
-                        onClick={() => setIsBookingOpen(true)}
-                        disabled={resource.status !== 'ACTIVE'}
-                    >
-                        <Calendar size={18} /> Schedule Resource
-                    </button>
-                </div>
+                        {resource.downloadUrl && (
+                            <button className="btn btn-secondary quick-btn" onClick={() => window.open(resource.downloadUrl, '_blank')}>
+                                <Download size={16} /> Download Info
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="glass-panel details-health">
+                        <div className="health-icon">{resource.available ? 'i' : '!'}</div>
+                        <div className="health-meta">
+                            <span>Operational Status</span>
+                            <strong>{resource.available ? 'Ready to book' : 'Temporarily busy'}</strong>
+                        </div>
+                        <div className="health-bar">
+                            <span style={{ width: resource.available ? '86%' : '28%' }} />
+                        </div>
+                    </div>
+                </aside>
             </div>
+
+            <footer className="details-footer">
+                <div>
+                    <strong>Campus Curator</strong>
+                    <p>Elevating campus management through refined facility coordination.</p>
+                </div>
+                <div>
+                    <strong>Resource</strong>
+                    <p>Documentation<br />API Access<br />Support Center</p>
+                </div>
+                <div>
+                    <strong>Platform</strong>
+                    <p>Sitemap<br />Privacy Policy<br />Terms of Service</p>
+                </div>
+            </footer>
 
             {isBookingOpen && (
                 <BookingForm 
@@ -140,11 +150,3 @@ export const ResourceDetails = () => {
         </div>
     );
 };
-
-const CheckCircle = ({ size = 24 }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-);
-
-const AlertCircle = ({ size = 24 }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-);

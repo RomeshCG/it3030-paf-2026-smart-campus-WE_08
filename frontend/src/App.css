@@ -432,6 +432,347 @@
   animation: blob 14s infinite alternate ease-in-out 4s;
 }
 
+.legacy-module .details-page {
+  padding: 2.25rem 1.4rem 3rem;
+  max-width: 1240px;
+  margin: 0 auto;
+}
+
+.legacy-module .details-back-btn {
+  margin-bottom: 1.2rem;
+}
+
+.legacy-module .details-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 290px;
+  gap: 1.2rem;
+  align-items: start;
+}
+
+.legacy-module .details-main {
+  min-width: 0;
+}
+
+.legacy-module .details-aside {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.legacy-module .details-hero {
+  position: relative;
+  height: 320px;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+  box-shadow: 0 10px 30px -18px rgba(15, 23, 42, 0.45);
+}
+
+.legacy-module .details-hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.legacy-module .details-hero-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.45rem;
+  padding: 1rem;
+  background: linear-gradient(180deg, rgba(2, 6, 23, 0.03) 35%, rgba(2, 6, 23, 0.68) 100%);
+}
+
+.legacy-module .details-hero-overlay h1 {
+  width: 100%;
+  margin: 0.4rem 0 0;
+  color: #fff;
+  font-size: 2.05rem;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.legacy-module .details-chip {
+  border-radius: 999px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0.16rem 0.52rem;
+}
+
+.legacy-module .chip-active {
+  background: #ecfdf3;
+  color: #047857;
+}
+
+.legacy-module .chip-out {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.legacy-module .details-info-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.legacy-module .details-info-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.8rem 0.85rem;
+  border-left: 3px solid #2563eb;
+}
+
+.legacy-module .details-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #64748b;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.legacy-module .details-info-card strong {
+  margin-top: 0.36rem;
+  display: block;
+  font-size: 0.9rem;
+  color: #0f172a;
+}
+
+.legacy-module .details-description {
+  padding: 1rem 1.1rem 1.15rem;
+}
+
+.legacy-module .details-description h3 {
+  margin: 0 0 0.7rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 1.25rem;
+}
+
+.legacy-module .details-description p {
+  margin: 0;
+  color: #64748b;
+  line-height: 1.65;
+  font-size: 0.92rem;
+}
+
+.legacy-module .details-feature-list {
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem 0.9rem;
+}
+
+.legacy-module .details-feature-list li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  color: #334155;
+  font-size: 0.78rem;
+}
+
+.legacy-module .details-feature-list svg {
+  color: #2563eb;
+}
+
+.legacy-module .quick-actions {
+  padding: 1rem;
+}
+
+.legacy-module .quick-actions h4 {
+  margin: 0;
+  display: inline-flex;
+  gap: 0.45rem;
+  align-items: center;
+  font-size: 1.1rem;
+}
+
+.legacy-module .quick-actions p {
+  margin: 0.4rem 0 0.9rem;
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.legacy-module .quick-btn {
+  width: 100%;
+  margin-bottom: 0.5rem;
+  padding: 0.65rem 0.8rem;
+}
+
+.legacy-module .details-health {
+  padding: 0.95rem;
+}
+
+.legacy-module .health-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #2563eb;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.legacy-module .health-meta {
+  margin-top: 0.55rem;
+}
+
+.legacy-module .health-meta span {
+  color: #94a3b8;
+  font-size: 0.66rem;
+  text-transform: uppercase;
+}
+
+.legacy-module .health-meta strong {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.85rem;
+}
+
+.legacy-module .health-bar {
+  margin-top: 0.6rem;
+  width: 100%;
+  height: 5px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.legacy-module .health-bar span {
+  display: block;
+  height: 100%;
+  background: #2563eb;
+}
+
+.legacy-module .details-footer {
+  margin-top: 2.2rem;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.2rem;
+}
+
+.legacy-module .details-footer strong {
+  display: inline-block;
+  margin-bottom: 0.35rem;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.legacy-module .details-footer p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 0.74rem;
+  line-height: 1.6;
+}
+
+@media (max-width: 1024px) {
+  .legacy-module .details-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .legacy-module .details-info-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .legacy-module .details-feature-list {
+    grid-template-columns: 1fr;
+  }
+
+  .legacy-module .details-footer {
+    grid-template-columns: 1fr;
+  }
+}
+
+.legacy-module .confirm-modal {
+  max-width: 400px;
+  text-align: center;
+  padding: 2.5rem;
+}
+
+.legacy-module .card-head-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0.95rem 1rem 0;
+}
+
+.legacy-module .card-menu-btn {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.legacy-module .card-menu-btn:hover {
+  background: #f1f5f9;
+}
+
+.legacy-module .availability-row {
+  margin: auto 1rem 1rem;
+}
+
+.legacy-module .availability-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.22rem 0.62rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+}
+
+.legacy-module .availability-available {
+  background: #ecfdf3;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+
+.legacy-module .availability-booked {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+
+.legacy-module .availability-unavailable {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.legacy-module .card-admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 1rem 1rem;
+  padding-top: 0.2rem;
+  border-top: 1px solid #f1f5f9;
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }

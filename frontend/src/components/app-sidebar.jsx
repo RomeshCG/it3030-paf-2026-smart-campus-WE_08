@@ -45,6 +45,7 @@ const WORKSPACE_NAV = [
 ];
 
 const ADMIN_NAV = [
+  { key: 'resource-management', label: 'Assets & Facilities', icon: Building2 },
   { key: 'manage-bookings', label: 'Manage Bookings', icon: ShieldCheck },
   { key: 'analytics', label: 'Analytics', icon: BarChart3 },
 ];

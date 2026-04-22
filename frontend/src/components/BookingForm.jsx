@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { BookingCalendar } from './BookingCalendar';
 import { createBooking } from '../api/bookingApi';
-import { Users, FileText, Clock, Calendar as CalendarIcon, Check, AlertTriangle } from 'lucide-react';
+import { Users, FileText, Clock, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export const BookingForm = ({ resource, onClose, onSuccess }) => {
@@ -11,12 +11,10 @@ export const BookingForm = ({ resource, onClose, onSuccess }) => {
     const [purpose, setPurpose] = useState('');
     const [attendees, setAttendees] = useState(1);
     const [loading, setLoading] = useState(false);
-    const [suggestions, setSuggestions] = useState([]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
-        setSuggestions([]);
 
         const bookingData = {
             resourceId: resource.id,
@@ -34,24 +32,9 @@ export const BookingForm = ({ resource, onClose, onSuccess }) => {
         } catch (err) {
             const errorMsg = err.response?.data?.message || 'Failed to submit booking';
             toast.error(errorMsg);
-            
-            // Extract suggestions if conflict occurred
-            if (err.response?.status === 409 && errorMsg.includes('Recommended slots:')) {
-                const parts = errorMsg.split('Recommended slots:');
-                if (parts.length > 1) {
-                    setSuggestions(parts[1].split(',').map(s => s.trim()));
-                }
-            }
         } finally {
             setLoading(false);
         }
-    };
-
-    const applySuggestion = (slot) => {
-        const [start, end] = slot.split(' - ');
-        setStartTime(start);
-        setEndTime(end);
-        setSuggestions([]);
     };
 
     return (
@@ -99,34 +82,12 @@ export const BookingForm = ({ resource, onClose, onSuccess }) => {
                             </div>
                         </div>
 
-                        {suggestions.length > 0 && (
-                            <div className="glass-panel suggestion-box animate-slide" style={{ padding: '1rem', background: 'rgba(99, 102, 241, 0.1)', border: '1px solid var(--accent-color)' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-color)', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.9rem' }}>
-                                    <AlertTriangle size={16} /> Smart Suggestions
-                                </div>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                                    {suggestions.map(slot => (
-                                        <button 
-                                            key={slot} 
-                                            type="button" 
-                                            className="btn btn-secondary" 
-                                            style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                                            onClick={() => applySuggestion(slot)}
-                                        >
-                                            {slot}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
                         <div className="form-group">
                             <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}><Users size={12} /> Attendees</label>
                             <input 
                                 type="number" 
                                 className="form-control" 
                                 min="1" 
-                                max={resource.capacity}
                                 value={attendees} 
                                 onChange={(e) => setAttendees(parseInt(e.target.value))} 
                                 required 
