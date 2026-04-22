@@ -12,16 +12,11 @@ import smart_campus_backend.booking.entity.BookingStatus;
 import smart_campus_backend.booking.entity.BookingAudit;
 import smart_campus_backend.booking.repository.BookingAuditRepository;
 import smart_campus_backend.booking.repository.BookingRepository;
-import smart_campus_backend.exception.BookingConflictException;
 import smart_campus_backend.notification.service.NotificationService;
 import smart_campus_backend.resource.entity.CampusResource;
-import smart_campus_backend.resource.entity.ResourceStatus;
 import smart_campus_backend.resource.repository.CampusResourceRepository;
 
 import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -36,44 +31,8 @@ public class BookingService {
 
     @Transactional
     public BookingResponse createBooking(BookingRequest request, User user) {
-        // 1. Validate resource exists
         CampusResource resource = resourceRepository.findById(request.getResourceId())
                 .orElseThrow(() -> new EntityNotFoundException("Resource not found with ID: " + request.getResourceId()));
-
-        if (resource.getStatus() != ResourceStatus.ACTIVE || !Boolean.TRUE.equals(resource.getAvailable())) {
-            throw new IllegalStateException("This resource is currently unavailable for booking");
-        }
-
-        if (request.getAttendees() != null && request.getAttendees() > resource.getCapacity()) {
-            throw new IllegalArgumentException("Attendees cannot exceed resource capacity of " + resource.getCapacity());
-        }
-
-        // 2. Validate startTime < endTime
-        if (request.getStartTime().isAfter(request.getEndTime()) || request.getStartTime().equals(request.getEndTime())) {
-            throw new IllegalArgumentException("Start time must be before end time");
-        }
-
-        // 3. Conflict Detection
-        // Check only against PENDING and APPROVED bookings
-        List<BookingStatus> activeStatuses = Arrays.asList(BookingStatus.PENDING, BookingStatus.APPROVED);
-        boolean hasConflict = bookingRepository.existsOverlappingBooking(
-                request.getResourceId(),
-                request.getDate(),
-                request.getStartTime(),
-                request.getEndTime(),
-                activeStatuses
-        );
-
-        if (hasConflict) {
-            List<String> suggestions = suggestAvailableSlots(request.getResourceId(), request.getDate(), request.getEndTime());
-            String message = "The resource is already booked for the selected time slot. ";
-            if (!suggestions.isEmpty()) {
-                message += "Recommended slots: " + String.join(", ", suggestions);
-            }
-            throw new BookingConflictException(message);
-        }
-
-        // 4. Create and Save
         Booking booking = Booking.builder()
                 .user(user)
                 .resource(resource)
@@ -88,22 +47,6 @@ public class BookingService {
         Booking saved = bookingRepository.save(booking);
         createAuditLog(saved, "CREATED", user.getName());
         return mapToResponse(saved);
-    }
-
-    private List<String> suggestAvailableSlots(Long resourceId, java.time.LocalDate date, LocalTime startTime) {
-        List<String> suggestions = new ArrayList<>();
-        LocalTime current = startTime;
-        List<BookingStatus> activeStatuses = Arrays.asList(BookingStatus.PENDING, BookingStatus.APPROVED);
-
-        while (suggestions.size() < 3 && current.isBefore(LocalTime.of(22, 0))) {
-            LocalTime potentialEnd = current.plusHours(1);
-            boolean hasConflict = bookingRepository.existsOverlappingBooking(resourceId, date, current, potentialEnd, activeStatuses);
-            if (!hasConflict) {
-                suggestions.add(current + " - " + potentialEnd);
-            }
-            current = current.plusHours(1);
-        }
-        return suggestions;
     }
 
     private void createAuditLog(Booking booking, String action, String performedBy) {
@@ -142,26 +85,6 @@ public class BookingService {
         
         if (booking.getStatus() != BookingStatus.PENDING) {
             throw new IllegalStateException("Only pending bookings can be approved");
-        }
-
-        CampusResource resource = booking.getResource();
-        if (resource.getStatus() != ResourceStatus.ACTIVE || !Boolean.TRUE.equals(resource.getAvailable())) {
-            throw new IllegalStateException("Cannot approve booking: resource is currently unavailable");
-        }
-        if (booking.getAttendees() != null && booking.getAttendees() > resource.getCapacity()) {
-            throw new IllegalStateException("Cannot approve booking: attendees exceed resource capacity");
-        }
-
-        boolean hasApprovedConflict = bookingRepository.existsOverlappingBookingExcluding(
-                resource.getId(),
-                booking.getDate(),
-                booking.getStartTime(),
-                booking.getEndTime(),
-                booking.getId(),
-                List.of(BookingStatus.APPROVED)
-        );
-        if (hasApprovedConflict) {
-            throw new BookingConflictException("Cannot approve booking: the selected time slot is already allocated");
         }
 
         booking.setStatus(BookingStatus.APPROVED);

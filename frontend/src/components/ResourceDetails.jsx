@@ -99,7 +99,6 @@ export const ResourceDetails = () => {
                         <button
                             className="btn btn-primary quick-btn"
                             onClick={() => setIsBookingOpen(true)}
-                            disabled={resource.status !== 'ACTIVE'}
                         >
                             <Calendar size={16} /> Schedule Resource
                         </button>
