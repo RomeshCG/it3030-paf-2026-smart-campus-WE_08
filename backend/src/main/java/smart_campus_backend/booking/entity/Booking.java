@@ -54,6 +54,13 @@ public class Booking {
     @Column(name = "rejection_reason")
     private String rejectionReason;
 
+    @Column(name = "capacity_overridden", nullable = false)
+    @Builder.Default
+    private Boolean capacityOverridden = false;
+
+    @Column(name = "override_reason")
+    private String overrideReason;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @Builder.Default
     private java.time.LocalDateTime createdAt = java.time.LocalDateTime.now();

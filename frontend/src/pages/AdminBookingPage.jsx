@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getAllBookings, approveBooking, rejectBooking } from '../api/bookingApi';
+import { getAllBookings, approveBooking, rejectBooking, getTimeSlotAvailability } from '../api/bookingApi';
 import { CheckCircle, XCircle, Clock, Users, Calendar as CalendarIcon, MessageSquare, Shield, Search, Filter, Bell } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,10 @@ export const AdminBookingPage = ({ embedded = false }) => {
     const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
     const [selectedBookingId, setSelectedBookingId] = useState(null);
     const [rejectionReason, setRejectionReason] = useState('');
+    const [isOverrideModalOpen, setIsOverrideModalOpen] = useState(false);
+    const [overrideReason, setOverrideReason] = useState('');
+    const [selectedBookingForOverride, setSelectedBookingForOverride] = useState(null);
+    const [availabilityByBooking, setAvailabilityByBooking] = useState({});
 
     useEffect(() => {
         fetchBookings();
@@ -35,6 +39,24 @@ export const AdminBookingPage = ({ embedded = false }) => {
         try {
             const data = await getAllBookings();
             setBookings(data);
+            const pending = data.filter((booking) => booking.status === 'PENDING');
+            const pairs = await Promise.all(
+                pending.map(async (booking) => {
+                    try {
+                        const availability = await getTimeSlotAvailability({
+                            resourceId: booking.resourceId,
+                            date: booking.date,
+                            startTime: booking.startTime,
+                            endTime: booking.endTime,
+                            totalCapacity: 0,
+                        });
+                        return [booking.id, availability];
+                    } catch (error) {
+                        return [booking.id, null];
+                    }
+                })
+            );
+            setAvailabilityByBooking(Object.fromEntries(pairs));
         } catch (err) {
             toast.error('Failed to load bookings');
         } finally {
@@ -42,14 +64,38 @@ export const AdminBookingPage = ({ embedded = false }) => {
         }
     };
 
-    const handleApprove = async (id) => {
+    const handleApprove = async (id, options = {}) => {
+        const { forceOverride = false, overrideReason: reason = '' } = options;
+        const availability = availabilityByBooking[id];
+        const booking = bookings.find((item) => item.id === id);
+        const wouldExceedCapacity = availability && booking && Number(booking.attendees || 0) > Number(availability.remaining || 0);
+        if (wouldExceedCapacity && !forceOverride) {
+            toast.error(`Cannot approve. Only ${availability.remaining} seat(s) remaining in this slot.`);
+            return;
+        }
+        if (forceOverride && !reason.trim()) {
+            toast.error('Please provide a reason for capacity override');
+            return;
+        }
         try {
-            await approveBooking(id);
-            toast.success('Booking approved successfully');
+            await approveBooking(id, {
+                forceOverride,
+                overrideReason: forceOverride ? reason.trim() : undefined,
+            });
+            toast.success(forceOverride ? 'Booking approved with manual override' : 'Booking approved successfully');
+            setIsOverrideModalOpen(false);
+            setSelectedBookingForOverride(null);
+            setOverrideReason('');
             fetchBookings();
         } catch (err) {
-            toast.error('Failed to approve booking');
+            toast.error(err?.response?.data?.message || 'Failed to approve booking');
         }
+    };
+
+    const openOverrideModal = (booking) => {
+        setSelectedBookingForOverride(booking);
+        setOverrideReason('');
+        setIsOverrideModalOpen(true);
     };
 
     const openRejectModal = (id) => {
@@ -59,6 +105,10 @@ export const AdminBookingPage = ({ embedded = false }) => {
     };
 
     const handleReject = async () => {
+        if (!selectedBookingId) {
+            toast.error('No booking selected for rejection');
+            return;
+        }
         if (!rejectionReason.trim()) {
             toast.error('Please provide a reason for rejection');
             return;
@@ -69,14 +119,16 @@ export const AdminBookingPage = ({ embedded = false }) => {
             setIsRejectModalOpen(false);
             fetchBookings();
         } catch (err) {
-            toast.error('Failed to reject booking');
+            toast.error(err?.response?.data?.message || 'Failed to reject booking');
         }
     };
 
-    const filteredBookings = bookings.filter(b => {
+    const filteredBookings = bookings.filter((b) => {
         const matchesFilter = filter === 'ALL' || b.status === filter;
-        const matchesSearch = b.resourceName.toLowerCase().includes(search.toLowerCase()) || 
-                             b.userName.toLowerCase().includes(search.toLowerCase());
+        const query = search.toLowerCase();
+        const resourceName = String(b?.resourceName ?? '').toLowerCase();
+        const userName = String(b?.userName ?? '').toLowerCase();
+        const matchesSearch = resourceName.includes(query) || userName.includes(query);
         return matchesFilter && matchesSearch;
     });
 
@@ -157,7 +209,13 @@ export const AdminBookingPage = ({ embedded = false }) => {
                                 </CardHeader>
                             </Card>
                         ) : (
-                            filteredBookings.map(booking => (
+                            filteredBookings.map(booking => {
+                                const availability = availabilityByBooking[booking.id];
+                                const wouldExceedCapacity = Boolean(
+                                    availability && booking.status === 'PENDING'
+                                    && Number(booking.attendees || 0) > Number(availability.remaining || 0)
+                                );
+                                return (
                                 <Card key={booking.id}>
                                     <CardContent className="pt-6">
                                         <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
@@ -170,10 +228,25 @@ export const AdminBookingPage = ({ embedded = false }) => {
                                                     <div className="flex items-center gap-2"><Shield className="size-4" /> {booking.userName}</div>
                                                 </div>
                                                 <p className="text-sm"><strong>Purpose:</strong> {booking.purpose}</p>
+                                                {availability && (
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Slot Capacity: {availability.used}/{availability.total} used, {availability.remaining} remaining.
+                                                    </p>
+                                                )}
+                                                {wouldExceedCapacity && (
+                                                    <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700">
+                                                        This approval would exceed slot capacity.
+                                                    </div>
+                                                )}
                                                 {booking.rejectionReason && (
                                                     <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
                                                         <MessageSquare className="mr-2 inline size-4" />
                                                         <strong>Reason:</strong> {booking.rejectionReason}
+                                                    </div>
+                                                )}
+                                                {booking.capacityOverridden && booking.overrideReason && (
+                                                    <div className="rounded-md border border-indigo-500/30 bg-indigo-500/10 p-3 text-sm text-indigo-700">
+                                                        <strong>Manual override:</strong> {booking.overrideReason}
                                                     </div>
                                                 )}
                                             </div>
@@ -182,7 +255,9 @@ export const AdminBookingPage = ({ embedded = false }) => {
                                                 <Badge variant={getStatusVariant(booking.status)}>{booking.status}</Badge>
                                                 {booking.status === 'PENDING' && (
                                                     <div className="flex gap-2">
-                                                        <Button onClick={() => handleApprove(booking.id)}>
+                                                        <Button
+                                                            onClick={() => (wouldExceedCapacity ? openOverrideModal(booking) : handleApprove(booking.id))}
+                                                        >
                                                             <CheckCircle className="mr-2 size-4" /> Approve
                                                         </Button>
                                                         <Button variant="destructive" onClick={() => openRejectModal(booking.id)}>
@@ -194,14 +269,15 @@ export const AdminBookingPage = ({ embedded = false }) => {
                                         </div>
                                     </CardContent>
                                 </Card>
-                            ))
+                            );
+                        })
                         )}
                     </div>
 
                     {/* Rejection Modal */}
                     {isRejectModalOpen && (
-                        <div className="modal-overlay">
-                            <Card className="modal-content w-full max-w-md">
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
+                            <Card className="w-full max-w-md">
                                 <CardHeader>
                                     <CardTitle>Reject Booking</CardTitle>
                                     <CardDescription>Please provide a reason visible to the user.</CardDescription>
@@ -216,6 +292,51 @@ export const AdminBookingPage = ({ embedded = false }) => {
                                     <div className="flex gap-2">
                                         <Button variant="outline" className="flex-1" onClick={() => setIsRejectModalOpen(false)}>Cancel</Button>
                                         <Button variant="destructive" className="flex-1" onClick={handleReject}>Confirm Reject</Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    )}
+                    {isOverrideModalOpen && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
+                            <Card className="w-full max-w-md">
+                                <CardHeader>
+                                    <CardTitle>Capacity Override Approval</CardTitle>
+                                    <CardDescription>
+                                        This booking exceeds remaining slot capacity. Add a reason to continue.
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    {selectedBookingForOverride && (
+                                        <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700">
+                                            Resource: {selectedBookingForOverride.resourceName} <br />
+                                            Time: {selectedBookingForOverride.date} {selectedBookingForOverride.startTime} - {selectedBookingForOverride.endTime}
+                                        </div>
+                                    )}
+                                    <textarea
+                                        className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                        placeholder="e.g. Special event priority, emergency access..."
+                                        value={overrideReason}
+                                        onChange={(e) => setOverrideReason(e.target.value)}
+                                    />
+                                    <div className="flex gap-2">
+                                        <Button
+                                            variant="outline"
+                                            className="flex-1"
+                                            onClick={() => {
+                                                setIsOverrideModalOpen(false);
+                                                setSelectedBookingForOverride(null);
+                                                setOverrideReason('');
+                                            }}
+                                        >
+                                            Cancel
+                                        </Button>
+                                        <Button
+                                            className="flex-1"
+                                            onClick={() => handleApprove(selectedBookingForOverride?.id, { forceOverride: true, overrideReason })}
+                                        >
+                                            Approve with Override
+                                        </Button>
                                     </div>
                                 </CardContent>
                             </Card>
