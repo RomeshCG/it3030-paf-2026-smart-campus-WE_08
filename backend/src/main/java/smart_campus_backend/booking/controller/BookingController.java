@@ -2,6 +2,7 @@ package smart_campus_backend.booking.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -11,12 +12,15 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 import smart_campus_backend.auth.entity.User;
 import smart_campus_backend.auth.repository.UserRepository;
+import smart_campus_backend.booking.dto.BookingAvailabilityResponse;
 import smart_campus_backend.booking.dto.BookingRequest;
 import smart_campus_backend.booking.dto.BookingResponse;
 import smart_campus_backend.booking.dto.RejectBookingRequest;
 import smart_campus_backend.booking.entity.BookingAudit;
 import smart_campus_backend.booking.service.BookingService;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 @RestController
@@ -34,6 +38,16 @@ public class BookingController {
             @AuthenticationPrincipal UserDetails userDetails) {
         User user = getUserByEmail(userDetails);
         return new ResponseEntity<>(bookingService.createBooking(request, user), HttpStatus.CREATED);
+    }
+
+    @GetMapping("/availability")
+    public ResponseEntity<BookingAvailabilityResponse> getAvailability(
+            @RequestParam Long resourceId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime startTime,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime endTime
+    ) {
+        return ResponseEntity.ok(bookingService.getAvailability(resourceId, date, startTime, endTime));
     }
 
     @GetMapping("/my")

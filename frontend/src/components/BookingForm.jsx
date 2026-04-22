@@ -20,11 +20,12 @@ export const BookingForm = ({ resource, onClose, onSuccess }) => {
     const isTimeRangeInvalid = useMemo(() => startTime >= endTime, [startTime, endTime]);
     const requestedExceedsCapacity = attendees > resourceCapacity;
     const requestedExceedsRemaining = availability && attendees > availability.remaining;
+    const hasStrictAvailability = availability?.source !== 'mine';
     const shouldBlockSubmit = loading
         || availabilityLoading
         || isTimeRangeInvalid
         || requestedExceedsCapacity
-        || (availability?.source === 'all' && requestedExceedsRemaining);
+        || (hasStrictAvailability && requestedExceedsRemaining);
 
     useEffect(() => {
         let isMounted = true;
@@ -72,7 +73,7 @@ export const BookingForm = ({ resource, onClose, onSuccess }) => {
             toast.error(`Attendees cannot exceed maximum capacity (${resourceCapacity}).`);
             return;
         }
-        if (availability?.source === 'all' && requestedExceedsRemaining) {
+        if (hasStrictAvailability && requestedExceedsRemaining) {
             toast.error(`Only ${availability.remaining} seat(s) remaining for this slot.`);
             return;
         }
@@ -191,7 +192,7 @@ export const BookingForm = ({ resource, onClose, onSuccess }) => {
                             {requestedExceedsCapacity && (
                                 <div className="error-text">Attendees exceed maximum capacity ({resourceCapacity}).</div>
                             )}
-                            {availability?.source === 'all' && requestedExceedsRemaining && (
+                            {hasStrictAvailability && requestedExceedsRemaining && (
                                 <div className="error-text">
                                     Requested attendees exceed remaining seats ({availability.remaining}) for this slot.
                                 </div>

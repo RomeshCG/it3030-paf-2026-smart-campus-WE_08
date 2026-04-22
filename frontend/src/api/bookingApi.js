@@ -56,6 +56,21 @@ const isOverlapping = (existingStart, existingEnd, requestStart, requestEnd) => 
 };
 
 export const getTimeSlotAvailability = async ({ resourceId, date, startTime, endTime, totalCapacity }) => {
+    try {
+        const { data } = await api.get('/api/bookings/availability', {
+            params: { resourceId, date, startTime, endTime },
+        });
+        return {
+            total: Number(data?.totalCapacity || 0),
+            used: Number(data?.usedCapacity || 0),
+            remaining: Number(data?.remainingCapacity || 0),
+            isAvailable: Boolean(data?.available),
+            source: 'server',
+        };
+    } catch (error) {
+        // Fallback retains backward compatibility if backend endpoint is unavailable.
+    }
+
     const result = {
         total: Number(totalCapacity || 0),
         used: 0,

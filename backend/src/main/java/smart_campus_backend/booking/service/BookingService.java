@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import smart_campus_backend.auth.entity.User;
+import smart_campus_backend.booking.dto.BookingAvailabilityResponse;
 import smart_campus_backend.booking.dto.BookingRequest;
 import smart_campus_backend.booking.dto.BookingResponse;
 import smart_campus_backend.booking.entity.Booking;
@@ -17,12 +18,16 @@ import smart_campus_backend.resource.entity.CampusResource;
 import smart_campus_backend.resource.repository.CampusResourceRepository;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class BookingService {
+    private static final List<BookingStatus> CAPACITY_COUNTABLE_STATUSES =
+            Arrays.asList(BookingStatus.PENDING, BookingStatus.APPROVED);
 
     private final BookingRepository bookingRepository;
     private final CampusResourceRepository resourceRepository;
@@ -33,6 +38,19 @@ public class BookingService {
     public BookingResponse createBooking(BookingRequest request, User user) {
         CampusResource resource = resourceRepository.findById(request.getResourceId())
                 .orElseThrow(() -> new EntityNotFoundException("Resource not found with ID: " + request.getResourceId()));
+
+        validateBookingRequest(request, resource);
+
+        BookingAvailabilityResponse availability = getAvailability(
+                request.getResourceId(),
+                request.getDate(),
+                request.getStartTime(),
+                request.getEndTime()
+        );
+        if (request.getAttendees() > availability.getRemainingCapacity()) {
+            throw new IllegalStateException("Capacity full for selected slot. Remaining seats: " + availability.getRemainingCapacity());
+        }
+
         Booking booking = Booking.builder()
                 .user(user)
                 .resource(resource)
@@ -47,6 +65,49 @@ public class BookingService {
         Booking saved = bookingRepository.save(booking);
         createAuditLog(saved, "CREATED", user.getName());
         return mapToResponse(saved);
+    }
+
+    public BookingAvailabilityResponse getAvailability(Long resourceId, java.time.LocalDate date, LocalTime startTime, LocalTime endTime) {
+        CampusResource resource = resourceRepository.findById(resourceId)
+                .orElseThrow(() -> new EntityNotFoundException("Resource not found with ID: " + resourceId));
+
+        if (startTime == null || endTime == null || !startTime.isBefore(endTime)) {
+            throw new IllegalArgumentException("End time must be later than start time");
+        }
+
+        Integer totalCapacity = resource.getCapacity() == null ? 0 : resource.getCapacity();
+        Integer usedCapacity = bookingRepository.sumAttendeesForOverlappingBookings(
+                resourceId,
+                date,
+                startTime,
+                endTime,
+                CAPACITY_COUNTABLE_STATUSES
+        );
+        int safeUsed = usedCapacity == null ? 0 : usedCapacity;
+        int remaining = Math.max(totalCapacity - safeUsed, 0);
+
+        return BookingAvailabilityResponse.builder()
+                .resourceId(resourceId)
+                .date(date)
+                .startTime(startTime)
+                .endTime(endTime)
+                .totalCapacity(totalCapacity)
+                .usedCapacity(safeUsed)
+                .remainingCapacity(remaining)
+                .available(remaining > 0)
+                .build();
+    }
+
+    private void validateBookingRequest(BookingRequest request, CampusResource resource) {
+        if (request.getStartTime() == null || request.getEndTime() == null || !request.getStartTime().isBefore(request.getEndTime())) {
+            throw new IllegalArgumentException("End time must be later than start time");
+        }
+        if (Boolean.FALSE.equals(resource.getAvailable()) || resource.getStatus() != smart_campus_backend.resource.entity.ResourceStatus.ACTIVE) {
+            throw new IllegalStateException("Selected resource is not available for booking");
+        }
+        if (request.getAttendees() > resource.getCapacity()) {
+            throw new IllegalStateException("Attendees exceed resource maximum capacity (" + resource.getCapacity() + ")");
+        }
     }
 
     private void createAuditLog(Booking booking, String action, String performedBy) {
