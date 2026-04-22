@@ -12,3 +12,11 @@ export const ResourceStatuses = {
   ACTIVE: 'ACTIVE',
   OUT_OF_SERVICE: 'OUT_OF_SERVICE'
 };
+
+export const formatResourceTypeLabel = (type) =>
+  String(type || '')
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+
+export const getResourceCapacity = (resource) => Number(resource?.maxCapacity ?? resource?.capacity ?? 0);

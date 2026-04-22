@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ResourceTypes, ResourceStatuses } from '../types/resource';
+import { ResourceTypes, ResourceStatuses, formatResourceTypeLabel, getResourceCapacity } from '../types/resource';
 import { getResources, deleteResource, getDashboardStats } from '../api/resourceApi';
 import { ResourceForm } from './ResourceForm';
 import { Plus, Edit2, Trash2, MapPin, Users, Activity, RefreshCw, Layers, PieChart, CheckCircle, AlertCircle, FileDown, Search, MoreVertical, Building2 } from 'lucide-react';
@@ -100,7 +100,7 @@ export const ResourceList = () => {
         r.id,
         `"${(r.name || '').replace(/"/g, '""')}"`,
         r.type,
-        r.capacity,
+        getResourceCapacity(r),
         `"${(r.location || '').replace(/"/g, '""')}"`,
         r.status,
         r.available ? 'Yes' : 'No',
@@ -197,7 +197,7 @@ export const ResourceList = () => {
             <select className="form-control" value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); setPage(0); }}>
               <option value="">All Types</option>
               {Object.values(ResourceTypes).map(t => (
-                <option key={t} value={t}>{t}</option>
+                <option key={t} value={t}>{formatResourceTypeLabel(t)}</option>
               ))}
             </select>
           </div>
@@ -306,11 +306,11 @@ export const ResourceList = () => {
               </div>
               <div className="detail-row">
                 <Building2 size={14} style={{ color: 'var(--text-secondary)' }}/>
-                <span>{res.type.replace('_', ' ')}</span>
+                <span>{formatResourceTypeLabel(res.type)}</span>
               </div>
               <div className="detail-row">
                 <Users size={14} style={{ color: 'var(--text-secondary)' }}/>
-                <span>Capacity: {res.capacity} Students</span>
+                <span>Max Capacity: {getResourceCapacity(res)} Seats</span>
               </div>
             </div>
 

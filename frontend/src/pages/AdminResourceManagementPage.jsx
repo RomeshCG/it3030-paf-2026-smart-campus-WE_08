@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MoreVertical, Plus, X } from 'lucide-react';
-import { ResourceStatuses, ResourceTypes } from '@/types/resource';
+import { ResourceStatuses, ResourceTypes, formatResourceTypeLabel, getResourceCapacity } from '@/types/resource';
 
 const EMPTY_FORM = {
   name: '',
@@ -60,7 +60,7 @@ export function AdminResourceManagementPage({ embedded = false }) {
     setFormData({
       name: resource.name || '',
       type: resource.type || ResourceTypes.LAB,
-      capacity: resource.capacity || 1,
+      capacity: getResourceCapacity(resource) || 1,
       location: resource.location || '',
       status: resource.status || ResourceStatuses.ACTIVE,
       imageUrl: resource.imageUrl || '',
@@ -90,7 +90,7 @@ export function AdminResourceManagementPage({ embedded = false }) {
       return;
     }
     if (!formData.capacity || formData.capacity < 1) {
-      toast.error('Capacity must be at least 1');
+      toast.error('Maximum capacity must be at least 1');
       return;
     }
 
@@ -306,9 +306,9 @@ export function AdminResourceManagementPage({ embedded = false }) {
                           />
                         </td>
                         <td className="py-2 pr-2 font-medium">{resource.name}</td>
-                        <td className="py-2 pr-2">{resource.type}</td>
+                        <td className="py-2 pr-2">{formatResourceTypeLabel(resource.type)}</td>
                         <td className="py-2 pr-2">{resource.location}</td>
-                        <td className="py-2 pr-2">{resource.capacity}</td>
+                        <td className="py-2 pr-2">{getResourceCapacity(resource)}</td>
                         <td className="py-2 pr-2">
                           <Badge variant={resource.status === 'ACTIVE' ? 'secondary' : 'destructive'}>
                             {resource.status}
@@ -373,14 +373,14 @@ export function AdminResourceManagementPage({ embedded = false }) {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Type</label>
+                    <label className="text-sm font-medium">Resource Type</label>
                     <select
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                       value={formData.type}
                       onChange={(event) => setFormData((prev) => ({ ...prev, type: event.target.value }))}
                     >
                       {Object.values(ResourceTypes).map((type) => (
-                        <option key={type} value={type}>{type}</option>
+                        <option key={type} value={type}>{formatResourceTypeLabel(type)}</option>
                       ))}
                     </select>
                   </div>
@@ -397,7 +397,7 @@ export function AdminResourceManagementPage({ embedded = false }) {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Capacity</label>
+                    <label className="text-sm font-medium">Maximum Capacity</label>
                     <Input
                       type="number"
                       min={1}
