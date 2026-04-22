@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import smart_campus_backend.resource.dto.DashboardStats;
 import smart_campus_backend.resource.dto.ResourceDTO;
 import smart_campus_backend.resource.service.CampusResourceService;
@@ -74,5 +75,12 @@ public class CampusResourceController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         service.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/upload-image")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<Map<String, String>> uploadImage(@RequestPart("file") MultipartFile file) {
+        String imageUrl = service.uploadResourceImage(file);
+        return ResponseEntity.ok(Map.of("imageUrl", imageUrl));
     }
 }

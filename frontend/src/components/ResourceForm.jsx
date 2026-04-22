@@ -49,7 +49,8 @@ export const ResourceForm = ({ resource, onClose, onSuccess }) => {
       }
       onSuccess();
     } catch (err) {
-      toast.error('Failed to save resource. ' + (err.response?.data?.error || ''));
+      const apiMessage = err?.response?.data?.message || err?.response?.data?.error || '';
+      toast.error(`Failed to save resource. ${apiMessage}`.trim());
     } finally {
       setLoading(false);
     }
