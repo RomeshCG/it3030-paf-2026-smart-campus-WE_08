@@ -29,8 +29,7 @@ export const BookingForm = ({ resource, onClose, onSuccess }) => {
     const shouldBlockSubmit = loading
         || availabilityLoading
         || isTimeRangeInvalid
-        || requestedExceedsCapacity
-        || (hasStrictAvailability && requestedExceedsRemaining);
+        || requestedExceedsCapacity;
 
     useEffect(() => {
         let isMounted = true;
