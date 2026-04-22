@@ -28,6 +28,8 @@ import java.util.stream.Collectors;
 public class BookingService {
     private static final List<BookingStatus> CAPACITY_COUNTABLE_STATUSES =
             Arrays.asList(BookingStatus.PENDING, BookingStatus.APPROVED);
+    private static final List<BookingStatus> APPROVAL_CAPACITY_STATUSES =
+            List.of(BookingStatus.APPROVED);
 
     private final BookingRepository bookingRepository;
     private final CampusResourceRepository resourceRepository;
@@ -146,6 +148,22 @@ public class BookingService {
         
         if (booking.getStatus() != BookingStatus.PENDING) {
             throw new IllegalStateException("Only pending bookings can be approved");
+        }
+
+        Integer approvedSeats = bookingRepository.sumAttendeesForOverlappingBookingsExcluding(
+                booking.getResource().getId(),
+                booking.getDate(),
+                booking.getStartTime(),
+                booking.getEndTime(),
+                booking.getId(),
+                APPROVAL_CAPACITY_STATUSES
+        );
+        int safeApprovedSeats = approvedSeats == null ? 0 : approvedSeats;
+        int remainingSeats = Math.max(booking.getResource().getCapacity() - safeApprovedSeats, 0);
+        if (booking.getAttendees() > remainingSeats) {
+            throw new IllegalStateException(
+                    "Cannot approve booking. Only " + remainingSeats + " seat(s) remaining in this slot."
+            );
         }
 
         booking.setStatus(BookingStatus.APPROVED);

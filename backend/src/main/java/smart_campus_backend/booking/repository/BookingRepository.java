@@ -54,6 +54,19 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
                                                @Param("endTime") LocalTime endTime,
                                                @Param("countableStatuses") List<BookingStatus> countableStatuses);
 
+    @Query("SELECT COALESCE(SUM(b.attendees), 0) FROM Booking b " +
+           "WHERE b.resource.id = :resourceId " +
+           "AND b.date = :date " +
+           "AND b.status IN :countableStatuses " +
+           "AND b.id <> :excludeBookingId " +
+           "AND ((b.startTime < :endTime AND b.endTime > :startTime))")
+    Integer sumAttendeesForOverlappingBookingsExcluding(@Param("resourceId") Long resourceId,
+                                                        @Param("date") LocalDate date,
+                                                        @Param("startTime") LocalTime startTime,
+                                                        @Param("endTime") LocalTime endTime,
+                                                        @Param("excludeBookingId") Long excludeBookingId,
+                                                        @Param("countableStatuses") List<BookingStatus> countableStatuses);
+
     @Query("SELECT b.resource.name, COUNT(b) FROM Booking b GROUP BY b.resource.name")
     List<Object[]> countBookingsByResource();
 
