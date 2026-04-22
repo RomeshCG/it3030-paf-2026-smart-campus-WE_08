@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getAllBookings, approveBooking, rejectBooking } from '../api/bookingApi';
+import { getAllBookings, approveBooking, rejectBooking, getTimeSlotAvailability } from '../api/bookingApi';
 import { CheckCircle, XCircle, Clock, Users, Calendar as CalendarIcon, MessageSquare, Shield, Search, Filter, Bell } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,7 @@ export const AdminBookingPage = ({ embedded = false }) => {
     const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
     const [selectedBookingId, setSelectedBookingId] = useState(null);
     const [rejectionReason, setRejectionReason] = useState('');
+    const [availabilityByBooking, setAvailabilityByBooking] = useState({});
 
     useEffect(() => {
         fetchBookings();
@@ -35,6 +36,24 @@ export const AdminBookingPage = ({ embedded = false }) => {
         try {
             const data = await getAllBookings();
             setBookings(data);
+            const pending = data.filter((booking) => booking.status === 'PENDING');
+            const pairs = await Promise.all(
+                pending.map(async (booking) => {
+                    try {
+                        const availability = await getTimeSlotAvailability({
+                            resourceId: booking.resourceId,
+                            date: booking.date,
+                            startTime: booking.startTime,
+                            endTime: booking.endTime,
+                            totalCapacity: 0,
+                        });
+                        return [booking.id, availability];
+                    } catch (error) {
+                        return [booking.id, null];
+                    }
+                })
+            );
+            setAvailabilityByBooking(Object.fromEntries(pairs));
         } catch (err) {
             toast.error('Failed to load bookings');
         } finally {
@@ -43,12 +62,18 @@ export const AdminBookingPage = ({ embedded = false }) => {
     };
 
     const handleApprove = async (id) => {
+        const availability = availabilityByBooking[id];
+        const booking = bookings.find((item) => item.id === id);
+        if (availability && booking && Number(booking.attendees || 0) > Number(availability.remaining || 0)) {
+            toast.error(`Cannot approve. Only ${availability.remaining} seat(s) remaining in this slot.`);
+            return;
+        }
         try {
             await approveBooking(id);
             toast.success('Booking approved successfully');
             fetchBookings();
         } catch (err) {
-            toast.error('Failed to approve booking');
+            toast.error(err?.response?.data?.message || 'Failed to approve booking');
         }
     };
 
@@ -157,7 +182,13 @@ export const AdminBookingPage = ({ embedded = false }) => {
                                 </CardHeader>
                             </Card>
                         ) : (
-                            filteredBookings.map(booking => (
+                            filteredBookings.map(booking => {
+                                const availability = availabilityByBooking[booking.id];
+                                const wouldExceedCapacity = Boolean(
+                                    availability && booking.status === 'PENDING'
+                                    && Number(booking.attendees || 0) > Number(availability.remaining || 0)
+                                );
+                                return (
                                 <Card key={booking.id}>
                                     <CardContent className="pt-6">
                                         <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
@@ -170,6 +201,16 @@ export const AdminBookingPage = ({ embedded = false }) => {
                                                     <div className="flex items-center gap-2"><Shield className="size-4" /> {booking.userName}</div>
                                                 </div>
                                                 <p className="text-sm"><strong>Purpose:</strong> {booking.purpose}</p>
+                                                {availability && (
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Slot Capacity: {availability.used}/{availability.total} used, {availability.remaining} remaining.
+                                                    </p>
+                                                )}
+                                                {wouldExceedCapacity && (
+                                                    <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700">
+                                                        This approval would exceed slot capacity.
+                                                    </div>
+                                                )}
                                                 {booking.rejectionReason && (
                                                     <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
                                                         <MessageSquare className="mr-2 inline size-4" />
@@ -182,7 +223,7 @@ export const AdminBookingPage = ({ embedded = false }) => {
                                                 <Badge variant={getStatusVariant(booking.status)}>{booking.status}</Badge>
                                                 {booking.status === 'PENDING' && (
                                                     <div className="flex gap-2">
-                                                        <Button onClick={() => handleApprove(booking.id)}>
+                                                        <Button onClick={() => handleApprove(booking.id)} disabled={wouldExceedCapacity}>
                                                             <CheckCircle className="mr-2 size-4" /> Approve
                                                         </Button>
                                                         <Button variant="destructive" onClick={() => openRejectModal(booking.id)}>
@@ -194,7 +235,8 @@ export const AdminBookingPage = ({ embedded = false }) => {
                                         </div>
                                     </CardContent>
                                 </Card>
-                            ))
+                            );
+                        })
                         )}
                     </div>
 
