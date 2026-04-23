@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { createResource, getResources, updateResource, deleteResource, uploadResourceImage } from '@/api/resourceApi';
+import { getAllBookings } from '@/api/bookingApi';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MoreVertical, Plus, X } from 'lucide-react';
-import { ResourceStatuses, ResourceTypes } from '@/types/resource';
+import { ResourceStatuses, ResourceTypes, formatResourceTypeLabel, getResourceCapacity } from '@/types/resource';
 
 const EMPTY_FORM = {
   name: '',
@@ -21,8 +22,55 @@ const EMPTY_FORM = {
   available: true,
 };
 
+const CAPACITY_COUNTABLE_STATUSES = new Set(['PENDING', 'APPROVED']);
+
+const toMinutes = (timeValue = '00:00') => {
+  const [hours = '0', minutes = '0'] = String(timeValue).split(':');
+  return Number(hours) * 60 + Number(minutes);
+};
+
+const calculatePeakSeatDemandByResource = (bookings = []) => {
+  const today = new Date().toISOString().slice(0, 10);
+  const grouped = new Map();
+
+  bookings
+    .filter((booking) => CAPACITY_COUNTABLE_STATUSES.has(booking.status))
+    .filter((booking) => booking.date >= today)
+    .forEach((booking) => {
+      const key = `${booking.resourceId}::${booking.date}`;
+      const attendees = Number(booking.attendees || 0);
+      if (attendees <= 0) return;
+      const events = grouped.get(key) || [];
+      events.push({ minute: toMinutes(booking.startTime), delta: attendees, type: 'start' });
+      events.push({ minute: toMinutes(booking.endTime), delta: -attendees, type: 'end' });
+      grouped.set(key, events);
+    });
+
+  const peakByResource = new Map();
+  grouped.forEach((events, key) => {
+    events.sort((a, b) => {
+      if (a.minute !== b.minute) return a.minute - b.minute;
+      // Process end events before start events when times are equal.
+      if (a.type === b.type) return 0;
+      return a.type === 'end' ? -1 : 1;
+    });
+    let active = 0;
+    let peak = 0;
+    events.forEach((event) => {
+      active += event.delta;
+      peak = Math.max(peak, active);
+    });
+    const [resourceIdRaw] = key.split('::');
+    const resourceId = Number(resourceIdRaw);
+    peakByResource.set(resourceId, Math.max(peakByResource.get(resourceId) || 0, peak));
+  });
+
+  return peakByResource;
+};
+
 export function AdminResourceManagementPage({ embedded = false }) {
   const [resources, setResources] = useState([]);
+  const [allBookings, setAllBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [editingResource, setEditingResource] = useState(null);
@@ -36,12 +84,16 @@ export function AdminResourceManagementPage({ embedded = false }) {
   const fetchResources = async (name = '') => {
     setLoading(true);
     try {
-      const response = await getResources({
-        page: 0,
-        size: 500,
-        name: name.trim() || undefined,
-      });
+      const [response, bookings] = await Promise.all([
+        getResources({
+          page: 0,
+          size: 500,
+          name: name.trim() || undefined,
+        }),
+        getAllBookings().catch(() => []),
+      ]);
       setResources(response?.content ?? []);
+      setAllBookings(Array.isArray(bookings) ? bookings : []);
       setSelectedIds([]);
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Failed to load resources');
@@ -60,7 +112,7 @@ export function AdminResourceManagementPage({ embedded = false }) {
     setFormData({
       name: resource.name || '',
       type: resource.type || ResourceTypes.LAB,
-      capacity: resource.capacity || 1,
+      capacity: getResourceCapacity(resource) || 1,
       location: resource.location || '',
       status: resource.status || ResourceStatuses.ACTIVE,
       imageUrl: resource.imageUrl || '',
@@ -83,14 +135,24 @@ export function AdminResourceManagementPage({ embedded = false }) {
     setFormData(EMPTY_FORM);
   };
 
+  const peakSeatDemandByResource = calculatePeakSeatDemandByResource(allBookings);
+  const editingPeakDemand = editingResource?.id ? (peakSeatDemandByResource.get(editingResource.id) || 0) : 0;
+
   const saveResource = async (event) => {
     event.preventDefault();
     if (!formData.name.trim() || !formData.location.trim()) {
       toast.error('Name and location are required');
       return;
     }
-    if (!formData.capacity || formData.capacity < 1) {
-      toast.error('Capacity must be at least 1');
+    if (!Number.isInteger(formData.capacity) || formData.capacity < 1) {
+      toast.error('Maximum capacity must be a whole number and at least 1');
+      return;
+    }
+    if (editingResource?.id && formData.capacity < editingPeakDemand) {
+      toast.error(
+        `Cannot reduce capacity below current peak reserved seats (${editingPeakDemand}). ` +
+        'Please resolve or adjust bookings first.'
+      );
       return;
     }
 
@@ -306,9 +368,9 @@ export function AdminResourceManagementPage({ embedded = false }) {
                           />
                         </td>
                         <td className="py-2 pr-2 font-medium">{resource.name}</td>
-                        <td className="py-2 pr-2">{resource.type}</td>
+                        <td className="py-2 pr-2">{formatResourceTypeLabel(resource.type)}</td>
                         <td className="py-2 pr-2">{resource.location}</td>
-                        <td className="py-2 pr-2">{resource.capacity}</td>
+                        <td className="py-2 pr-2">{getResourceCapacity(resource)}</td>
                         <td className="py-2 pr-2">
                           <Badge variant={resource.status === 'ACTIVE' ? 'secondary' : 'destructive'}>
                             {resource.status}
@@ -373,14 +435,14 @@ export function AdminResourceManagementPage({ embedded = false }) {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Type</label>
+                    <label className="text-sm font-medium">Resource Type</label>
                     <select
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                       value={formData.type}
                       onChange={(event) => setFormData((prev) => ({ ...prev, type: event.target.value }))}
                     >
                       {Object.values(ResourceTypes).map((type) => (
-                        <option key={type} value={type}>{type}</option>
+                        <option key={type} value={type}>{formatResourceTypeLabel(type)}</option>
                       ))}
                     </select>
                   </div>
@@ -397,13 +459,23 @@ export function AdminResourceManagementPage({ embedded = false }) {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Capacity</label>
+                    <label className="text-sm font-medium">Maximum Capacity</label>
                     <Input
                       type="number"
                       min={1}
                       value={formData.capacity}
-                      onChange={(event) => setFormData((prev) => ({ ...prev, capacity: Number(event.target.value) }))}
+                      onChange={(event) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          capacity: Math.max(1, Number.parseInt(event.target.value || '1', 10) || 1),
+                        }))
+                      }
                     />
+                    {editingResource && (
+                      <p className="text-xs text-muted-foreground">
+                        Current peak reserved seats: <strong>{editingPeakDemand}</strong>
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Location</label>

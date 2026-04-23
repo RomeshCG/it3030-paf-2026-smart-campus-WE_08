@@ -4,6 +4,7 @@ import { ArrowLeft, MapPin, Users, Download, Calendar, ShieldCheck, Database, Cl
 import toast from 'react-hot-toast';
 import { BookingForm } from './BookingForm';
 import { getResourceById } from '../api/resourceApi';
+import { formatResourceTypeLabel, getResourceCapacity } from '../types/resource';
 
 export const ResourceDetails = () => {
     const { id } = useParams();
@@ -55,7 +56,7 @@ export const ResourceDetails = () => {
                         )}
 
                         <div className="details-hero-overlay">
-                            <span className="details-chip">{resource.type.replace('_', ' ')}</span>
+                            <span className="details-chip">{formatResourceTypeLabel(resource.type)}</span>
                             <span className={`details-chip ${resource.status === 'ACTIVE' ? 'chip-active' : 'chip-out'}`}>
                                 {resource.status.replace('_', ' ')}
                             </span>
@@ -70,7 +71,7 @@ export const ResourceDetails = () => {
                         </article>
                         <article className="details-info-card">
                             <span className="details-label"><Users size={14} /> Capacity</span>
-                            <strong>{resource.capacity} Workstations</strong>
+                            <strong>{getResourceCapacity(resource)} Seats</strong>
                         </article>
                         <article className="details-info-card">
                             <span className="details-label"><Clock size={14} /> Availability</span>

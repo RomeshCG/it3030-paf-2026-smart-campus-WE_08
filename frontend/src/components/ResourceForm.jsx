@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ResourceStatuses, ResourceTypes } from '../types/resource';
+import { ResourceStatuses, ResourceTypes, formatResourceTypeLabel, getResourceCapacity } from '../types/resource';
 import { createResource, updateResource } from '../api/resourceApi';
 import { X, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -21,7 +21,10 @@ export const ResourceForm = ({ resource, onClose, onSuccess }) => {
 
   useEffect(() => {
     if (resource) {
-      setFormData(resource);
+      setFormData({
+        ...resource,
+        capacity: getResourceCapacity(resource)
+      });
     }
   }, [resource]);
 
@@ -29,7 +32,7 @@ export const ResourceForm = ({ resource, onClose, onSuccess }) => {
     const newErrors = {};
     if (!formData.name) newErrors.name = 'Name is required';
     if (!formData.location) newErrors.location = 'Location is required';
-    if (!formData.capacity || formData.capacity < 1) newErrors.capacity = 'Capacity must be at least 1';
+    if (!formData.capacity || formData.capacity < 1) newErrors.capacity = 'Maximum capacity must be at least 1';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -96,10 +99,10 @@ export const ResourceForm = ({ resource, onClose, onSuccess }) => {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div className="form-group">
-              <label className="form-label">Type</label>
+              <label className="form-label">Resource Type</label>
               <select name="type" className="form-control" value={formData.type} onChange={handleChange}>
                 {Object.values(ResourceTypes).map(t => (
-                  <option key={t} value={t}>{t}</option>
+                  <option key={t} value={t}>{formatResourceTypeLabel(t)}</option>
                 ))}
               </select>
             </div>
@@ -115,7 +118,7 @@ export const ResourceForm = ({ resource, onClose, onSuccess }) => {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div className="form-group">
-              <label className="form-label">Capacity</label>
+              <label className="form-label">Maximum Capacity</label>
               <input
                 type="number"
                 name="capacity"
