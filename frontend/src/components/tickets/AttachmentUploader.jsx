@@ -62,7 +62,7 @@ export default function AttachmentUploader({
   return (
     <div className="space-y-3">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <Label htmlFor={`${idPrefix}-file`} className={isUser ? "text-[var(--text-secondary)]" : ""}>Images (max {MAX_FILES})</Label>
+        <Label htmlFor={`${idPrefix}-file`} className={isUser ? "text-slate-600" : ""}>Images (max {MAX_FILES})</Label>
         <input
           ref={inputRef}
           id={`${idPrefix}-file`}
@@ -79,7 +79,7 @@ export default function AttachmentUploader({
         {isUser ? (
           <button
             type="button"
-            className="btn btn-secondary text-xs"
+            className="bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 px-3 py-1.5 rounded-lg font-medium text-xs transition-colors"
             disabled={disabled || files.length >= MAX_FILES}
             onClick={() => inputRef.current?.click()}
           >

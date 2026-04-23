@@ -27,12 +27,12 @@ const CategorySelector = ({ category, setCategory, disabled }) => {
           onClick={() => setCategory(c)}
           className={`cursor-pointer rounded-xl border p-4 flex flex-col items-center justify-center gap-3 transition-all duration-300 ${
             category === c 
-              ? 'border-[var(--accent-color)] bg-[rgba(99,102,241,0.15)] shadow-[0_0_20px_rgba(99,102,241,0.25)] transform scale-[1.02]' 
-              : 'border-[var(--border-color)] bg-[rgba(0,0,0,0.3)] hover:border-[var(--text-secondary)] hover:bg-[rgba(255,255,255,0.05)]'
+              ? 'border-blue-600 bg-blue-50 shadow-sm transform scale-[1.02]' 
+              : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
           }`}
         >
-          <CategoryIcon category={c} className={`h-6 w-6 transition-colors duration-300 ${category === c ? 'text-[var(--accent-color)]' : 'text-[var(--text-secondary)] opacity-70'}`} />
-          <span className={`text-xs font-bold tracking-wide text-center transition-colors duration-300 ${category === c ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
+          <CategoryIcon category={c} className={`h-6 w-6 transition-colors duration-300 ${category === c ? 'text-blue-600' : 'text-slate-500 opacity-70'}`} />
+          <span className={`text-xs font-bold tracking-wide text-center transition-colors duration-300 ${category === c ? 'text-slate-900' : 'text-slate-600'}`}>
             {c.replace(/_/g, ' ')}
           </span>
         </button>
@@ -46,13 +46,13 @@ const PrioritySelector = ({ priority, setPriority, disabled }) => {
     <div className="flex flex-wrap gap-3 mt-1.5">
       {TICKET_PRIORITY.map((p) => {
         let colorClass = '';
-        if (p === 'LOW') colorClass = 'text-emerald-400 border-emerald-500/30 hover:border-emerald-500';
-        if (p === 'MEDIUM') colorClass = 'text-amber-400 border-amber-500/30 hover:border-amber-500';
-        if (p === 'HIGH') colorClass = 'text-rose-400 border-rose-500/30 hover:border-rose-500 hover:shadow-[0_0_10px_rgba(225,29,72,0.2)]';
+        if (p === 'LOW') colorClass = 'text-emerald-700 border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50';
+        if (p === 'MEDIUM') colorClass = 'text-amber-700 border-amber-200 hover:border-amber-400 hover:bg-amber-50';
+        if (p === 'HIGH') colorClass = 'text-rose-700 border-rose-200 hover:border-rose-400 hover:bg-rose-50';
         if (priority === p) {
-          if (p === 'LOW') colorClass = 'text-emerald-300 border-emerald-400 bg-emerald-500/20 shadow-[0_0_15px_rgba(52,211,153,0.3)] scale-[1.05]';
-          if (p === 'MEDIUM') colorClass = 'text-amber-300 border-amber-400 bg-amber-500/20 shadow-[0_0_15px_rgba(251,191,36,0.3)] scale-[1.05]';
-          if (p === 'HIGH') colorClass = 'text-rose-300 border-rose-400 bg-rose-500/20 shadow-[0_0_15px_rgba(251,113,133,0.3)] scale-[1.05]';
+          if (p === 'LOW') colorClass = 'text-emerald-800 border-emerald-500 bg-emerald-50 shadow-sm scale-[1.05]';
+          if (p === 'MEDIUM') colorClass = 'text-amber-800 border-amber-500 bg-amber-50 shadow-sm scale-[1.05]';
+          if (p === 'HIGH') colorClass = 'text-rose-800 border-rose-500 bg-rose-50 shadow-sm scale-[1.05]';
         }
         return (
           <button
@@ -60,7 +60,7 @@ const PrioritySelector = ({ priority, setPriority, disabled }) => {
             type="button"
             disabled={disabled}
             onClick={() => setPriority(p)}
-            className={`px-5 py-2.5 rounded-xl border text-xs font-bold tracking-wider transition-all duration-300 ${colorClass} ${priority !== p ? 'bg-[rgba(0,0,0,0.4)] opacity-80' : ''}`}
+            className={`px-5 py-2.5 rounded-xl border text-xs font-bold tracking-wider transition-all duration-300 ${colorClass} ${priority !== p ? 'bg-white opacity-80' : ''}`}
           >
             {p}
           </button>
@@ -72,7 +72,7 @@ const PrioritySelector = ({ priority, setPriority, disabled }) => {
 
 const ContactMethodSelector = ({ method, setMethod, disabled }) => {
   return (
-    <div className="flex flex-wrap bg-[rgba(0,0,0,0.4)] border border-[var(--glass-border)] p-1.5 rounded-xl w-full sm:w-fit mt-1.5 gap-1">
+    <div className="flex flex-wrap bg-slate-100 border border-slate-200 p-1.5 rounded-xl w-full sm:w-fit mt-1.5 gap-1">
       {TICKET_CONTACT_METHODS.map((m) => (
         <button
           key={m}
@@ -81,8 +81,8 @@ const ContactMethodSelector = ({ method, setMethod, disabled }) => {
           onClick={() => setMethod(m)}
           className={`flex-1 sm:flex-none px-4 py-2 text-xs font-bold rounded-lg transition-all duration-300 ${
             method === m 
-              ? 'bg-[var(--accent-color)] shadow-[0_0_15px_rgba(99,102,241,0.4)] text-white border border-transparent scale-[1.02]' 
-              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[rgba(255,255,255,0.05)] border border-transparent'
+              ? 'bg-blue-600 shadow-sm text-white border border-transparent scale-[1.02]' 
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white border border-transparent'
           }`}
         >
           {m.replace('_', ' ')}
@@ -163,11 +163,11 @@ export default function TicketForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className={isUser ? "glass-section space-y-6" : "space-y-5"}>
-        {isUser && <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--accent-color)] mb-2">Core Details</h4>}
+      <div className={isUser ? "border border-slate-200 bg-slate-50 rounded-xl p-5 shadow-sm space-y-6" : "space-y-5"}>
+        {isUser && <h4 className="text-xs font-bold uppercase tracking-wider text-blue-600 mb-2">Core Details</h4>}
         
         <div>
-          <Label htmlFor="tf-title" className={isUser ? "text-[var(--text-secondary)] flex items-center gap-2 mb-1.5" : ""}>
+          <Label htmlFor="tf-title" className={isUser ? "text-slate-600 flex items-center gap-2 mb-1.5" : ""}>
             {isUser && <Type className="h-4 w-4" />} Title
           </Label>
           <Input
@@ -183,7 +183,7 @@ export default function TicketForm({
         </div>
 
         <div>
-          <Label htmlFor="tf-cat" className={isUser ? "text-[var(--text-secondary)] flex items-center gap-2 mb-2" : ""}>
+          <Label htmlFor="tf-cat" className={isUser ? "text-slate-600 flex items-center gap-2 mb-2" : ""}>
             {isUser && <Tags className="h-4 w-4" />} Category
           </Label>
           {isUser ? (
@@ -205,7 +205,7 @@ export default function TicketForm({
         </div>
 
         <div>
-          <Label htmlFor="tf-pr" className={isUser ? "text-[var(--text-secondary)] flex items-center gap-2 mb-2" : ""}>
+          <Label htmlFor="tf-pr" className={isUser ? "text-slate-600 flex items-center gap-2 mb-2" : ""}>
             {isUser && <AlertCircle className="h-4 w-4" />} Priority
           </Label>
           {isUser ? (
@@ -227,7 +227,7 @@ export default function TicketForm({
         </div>
 
         <div>
-          <Label htmlFor="tf-desc" className={isUser ? "text-[var(--text-secondary)] flex items-center gap-2 mb-1.5" : ""}>
+          <Label htmlFor="tf-desc" className={isUser ? "text-slate-600 flex items-center gap-2 mb-1.5" : ""}>
             {isUser && <FileText className="h-4 w-4" />} Description
           </Label>
           <textarea
@@ -244,9 +244,9 @@ export default function TicketForm({
         </div>
       </div>
 
-      <div className={isUser ? "glass-section" : "rounded-lg border border-slate-200 p-4 dark:border-slate-800"}>
+      <div className={isUser ? "border border-slate-200 bg-slate-50 rounded-xl p-5 shadow-sm" : "rounded-lg border border-slate-200 p-4 dark:border-slate-800"}>
         {isUser ? (
-          <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--accent-color)] mb-5 mt-1">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-blue-600 mb-5 mt-1">
              Context & Contact
           </h4>
         ) : (
@@ -258,7 +258,7 @@ export default function TicketForm({
         
         <div className={`space-y-5 ${!isUser ? 'mt-4 grid gap-5 sm:grid-cols-2 space-y-0' : ''}`}>
           <div>
-            <Label htmlFor="tf-contact-method" className={isUser ? "text-[var(--text-secondary)] flex items-center gap-2 mb-2" : ""}>
+            <Label htmlFor="tf-contact-method" className={isUser ? "text-slate-600 flex items-center gap-2 mb-2" : ""}>
                {isUser && <PhoneCall className="h-4 w-4" />} Preferred contact method
             </Label>
             {isUser ? (
@@ -280,7 +280,7 @@ export default function TicketForm({
           </div>
 
           <div>
-            <Label htmlFor="tf-contact" className={isUser ? "text-[var(--text-secondary)] flex items-center gap-2 mb-1.5" : ""}>
+            <Label htmlFor="tf-contact" className={isUser ? "text-slate-600 flex items-center gap-2 mb-1.5" : ""}>
                {methodLabel}
             </Label>
             <Input
@@ -297,7 +297,7 @@ export default function TicketForm({
         </div>
 
         <div className={isUser ? "mt-6" : "mt-5"}>
-          <Label htmlFor="tf-loc" className={isUser ? "text-[var(--text-secondary)] flex items-center gap-2 mb-1.5" : ""}>
+          <Label htmlFor="tf-loc" className={isUser ? "text-slate-600 flex items-center gap-2 mb-1.5" : ""}>
              {isUser && <MapPin className="h-4 w-4" />} Location / resource
           </Label>
           <Input
@@ -316,7 +316,7 @@ export default function TicketForm({
       
       <div className="pt-4">
         {isUser ? (
-          <button type="submit" disabled={disabled} className="btn-glow w-full uppercase tracking-wider !py-3">
+          <button type="submit" disabled={disabled} className="btn btn-primary w-full uppercase tracking-wider !py-3 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors">
             {submitLabel} <Send className="h-5 w-5 ml-1 opacity-90" />
           </button>
         ) : (

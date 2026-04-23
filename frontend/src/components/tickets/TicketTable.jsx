@@ -14,17 +14,17 @@ export default function TicketTable({
 
   if (!tickets.length) {
     return (
-      <div className={isUser ? "rounded-lg border border-dashed border-[var(--glass-border)] py-12 text-center text-sm text-[var(--text-secondary)] bg-[rgba(255,255,255,0.02)]" : "rounded-lg border border-dashed border-slate-200 py-12 text-center text-sm text-slate-500 dark:border-slate-800"}>
+      <div className={isUser ? "rounded-lg border border-dashed border-slate-200 py-12 text-center text-sm text-slate-500 bg-slate-50/50" : "rounded-lg border border-dashed border-slate-200 py-12 text-center text-sm text-slate-500 dark:border-slate-800"}>
         {emptyMessage}
       </div>
     );
   }
 
   return (
-    <div className={isUser ? "overflow-x-auto rounded-xl border border-[var(--glass-border)] bg-[rgba(0,0,0,0.15)]" : "overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800"}>
+    <div className={isUser ? "overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm" : "overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800"}>
       <table className="w-full min-w-[720px] border-collapse text-left text-sm">
         <thead>
-          <tr className={isUser ? "border-b border-[var(--glass-border)] bg-[rgba(0,0,0,0.3)]" : "border-b border-slate-200 bg-slate-50/90 dark:border-slate-800 dark:bg-slate-900/50"}>
+          <tr className={isUser ? "border-b border-slate-100 bg-slate-50/50" : "border-b border-slate-200 bg-slate-50/90 dark:border-slate-800 dark:bg-slate-900/50"}>
             <th className={`px-4 py-3 font-semibold ${isUser ? 'text-[var(--text-secondary)]' : 'text-slate-700 dark:text-slate-300'}`}>ID</th>
             <th className={`px-4 py-3 font-semibold ${isUser ? 'text-[var(--text-secondary)]' : 'text-slate-700 dark:text-slate-300'}`}>Title</th>
             <th className={`px-4 py-3 font-semibold ${isUser ? 'text-[var(--text-secondary)]' : 'text-slate-700 dark:text-slate-300'}`}>Category</th>
@@ -40,7 +40,7 @@ export default function TicketTable({
             <tr
               key={t.id}
               className={isUser 
-                ? `border-b border-[var(--glass-border)] transition-colors hover:bg-[rgba(255,255,255,0.05)] ${selectedId != null && t.id === selectedId ? 'bg-[rgba(99,102,241,0.15)]' : ''}`
+                ? `border-b border-slate-100 transition-colors hover:bg-slate-50 ${selectedId != null && t.id === selectedId ? 'bg-blue-50' : ''}`
                 : `border-b border-slate-100 transition-colors hover:bg-slate-50/80 dark:border-slate-800 dark:hover:bg-slate-900/40 ${selectedId != null && t.id === selectedId ? 'bg-sky-50/90 dark:bg-sky-950/30' : ''}`
               }
             >
