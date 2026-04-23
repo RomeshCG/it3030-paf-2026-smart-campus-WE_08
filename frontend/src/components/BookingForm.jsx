@@ -20,6 +20,7 @@ export const BookingForm = ({ resource, onClose, onSuccess }) => {
     const isTimeRangeInvalid = useMemo(() => startTime >= endTime, [startTime, endTime]);
     const requestedExceedsCapacity = attendees > resourceCapacity;
     const requestedExceedsRemaining = availability && attendees > availability.remaining;
+    const eligibleForWaitlist = !requestedExceedsCapacity;
     const isSlotFullyBooked = Boolean(availability && Number(availability.remaining) <= 0);
     const hasStrictAvailability = availability?.source !== 'mine';
     const predictedRemaining = availability
@@ -185,7 +186,7 @@ export const BookingForm = ({ resource, onClose, onSuccess }) => {
                                             Low slot availability. Only {availability.remaining} seat(s) left.
                                         </div>
                                     )}
-                                    {hasStrictAvailability && isSlotFullyBooked && (
+                                    {hasStrictAvailability && isSlotFullyBooked && eligibleForWaitlist && (
                                         <div style={{ marginTop: '0.45rem', fontSize: '0.78rem', color: 'var(--warning)' }}>
                                             <AlertTriangle size={12} style={{ display: 'inline', marginRight: 4 }} />
                                             This slot is currently full. You can still submit and join the waitlist.
@@ -219,7 +220,7 @@ export const BookingForm = ({ resource, onClose, onSuccess }) => {
                             {requestedExceedsCapacity && (
                                 <div className="error-text">Attendees exceed maximum capacity ({resourceCapacity}).</div>
                             )}
-                            {hasStrictAvailability && requestedExceedsRemaining && (
+                            {hasStrictAvailability && requestedExceedsRemaining && eligibleForWaitlist && (
                                 <div style={{ marginTop: '0.35rem', fontSize: '0.78rem', color: 'var(--warning)' }}>
                                     Requested attendees exceed current remaining seats ({availability.remaining}).
                                     If submitted, this request may be waitlisted.
