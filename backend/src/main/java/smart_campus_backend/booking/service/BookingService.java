@@ -12,6 +12,8 @@ import smart_campus_backend.booking.dto.BookingResponse;
 import smart_campus_backend.booking.entity.Booking;
 import smart_campus_backend.booking.entity.BookingStatus;
 import smart_campus_backend.booking.entity.BookingAudit;
+import smart_campus_backend.mail.NotificationEmailService;
+import smart_campus_backend.notification.entity.NotificationType;
 import smart_campus_backend.booking.repository.BookingAuditRepository;
 import smart_campus_backend.booking.repository.BookingRepository;
 import smart_campus_backend.notification.service.NotificationService;
@@ -36,6 +38,7 @@ public class BookingService {
     private final CampusResourceRepository resourceRepository;
     private final BookingAuditRepository auditRepository;
     private final NotificationService notificationService;
+    private final NotificationEmailService notificationEmailService;
 
     @Transactional
     public BookingResponse createBooking(BookingRequest request, User user) {
@@ -192,7 +195,18 @@ public class BookingService {
         booking.setOverrideReason(wouldExceedCapacity && forceOverride ? overrideReason.trim() : null);
         Booking saved = bookingRepository.save(booking);
         createAuditLog(saved, booking.getCapacityOverridden() ? "APPROVED_OVERRIDE" : "APPROVED", "ADMIN");
-        notificationService.createNotification(booking.getUser(), "Your booking for " + booking.getResource().getName() + " on " + booking.getDate() + " has been APPROVED.");
+        String message = "Your booking for " + booking.getResource().getName() + " on " + booking.getDate() + " has been APPROVED.";
+        notificationService.createNotification(
+                booking.getUser(),
+                message,
+                NotificationType.BOOKING,
+                "/bookings/my"
+        );
+        notificationEmailService.sendNotificationEmail(
+                booking.getUser().getEmail(),
+                "Booking approved - Smart Campus",
+                message + "\n\nOpen the app to view details."
+        );
         return mapToResponse(saved);
     }
 
@@ -210,10 +224,19 @@ public class BookingService {
         booking.setRejectionReason(reason);
         Booking saved = bookingRepository.save(booking);
         createAuditLog(saved, "REJECTED", "ADMIN");
-        notificationService.createNotification(booking.getUser(), "Your booking for " + booking.getResource().getName() + " on " + booking.getDate() + " has been REJECTED. Reason: " + reason);
-        if (freedCapacity) {
-            processWaitlistForSlot(booking.getResource().getId(), booking.getDate(), booking.getStartTime(), booking.getEndTime());
-        }
+        String message = "Your booking for " + booking.getResource().getName() + " on " + booking.getDate()
+                + " has been REJECTED. Reason: " + reason;
+        notificationService.createNotification(
+                booking.getUser(),
+                message,
+                NotificationType.BOOKING,
+                "/bookings/my"
+        );
+        notificationEmailService.sendNotificationEmail(
+                booking.getUser().getEmail(),
+                "Booking rejected - Smart Campus",
+                message + "\n\nOpen the app to view details."
+        );
         return mapToResponse(saved);
     }
 
@@ -235,6 +258,18 @@ public class BookingService {
         booking.setStatus(BookingStatus.CANCELLED);
         Booking saved = bookingRepository.save(booking);
         createAuditLog(saved, "CANCELLED", user.getName());
+        String message = "Your booking for " + booking.getResource().getName() + " on " + booking.getDate() + " has been CANCELLED.";
+        notificationService.createNotification(
+                booking.getUser(),
+                message,
+                NotificationType.BOOKING,
+                "/bookings/my"
+        );
+        notificationEmailService.sendNotificationEmail(
+                booking.getUser().getEmail(),
+                "Booking cancelled - Smart Campus",
+                message + "\n\nOpen the app to view details."
+        );
         if (freedCapacity) {
             processWaitlistForSlot(booking.getResource().getId(), booking.getDate(), booking.getStartTime(), booking.getEndTime());
         }

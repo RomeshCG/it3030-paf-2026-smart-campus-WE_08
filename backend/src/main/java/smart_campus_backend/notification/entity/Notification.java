@@ -28,6 +28,13 @@ public class Notification {
     @Column(nullable = false)
     private String message;
 
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private NotificationType type = NotificationType.GENERAL;
+
+    @Column(length = 500)
+    private String link;
+
     @Column(nullable = false)
     @Builder.Default
     private boolean isRead = false;

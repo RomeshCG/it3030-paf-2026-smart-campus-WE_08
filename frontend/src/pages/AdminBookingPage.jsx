@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { getAllBookings, approveBooking, rejectBooking, getTimeSlotAvailability } from '../api/bookingApi';
-import { CheckCircle, XCircle, Clock, Users, Calendar as CalendarIcon, MessageSquare, Shield, Search, Filter, Bell } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Users, Calendar as CalendarIcon, MessageSquare, Shield, Search, Filter } from 'lucide-react';
+import { NotificationBell } from '../components/NotificationBell';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -412,9 +413,7 @@ export const AdminBookingPage = ({ embedded = false }) => {
                         <SidebarTrigger />
                         <h1 className="text-xl font-semibold">Manage Bookings</h1>
                     </div>
-                    <Button variant="ghost" size="icon" className="relative text-slate-500">
-                        <Bell className="size-5" />
-                    </Button>
+                    <NotificationBell />
                 </header>
                 {content}
             </SidebarInset>
