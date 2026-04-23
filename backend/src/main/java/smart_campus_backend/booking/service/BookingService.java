@@ -50,9 +50,7 @@ public class BookingService {
                 request.getStartTime(),
                 request.getEndTime()
         );
-        if (request.getAttendees() > availability.getRemainingCapacity()) {
-            throw new IllegalStateException("Capacity full for selected slot. Remaining seats: " + availability.getRemainingCapacity());
-        }
+        boolean shouldWaitlist = request.getAttendees() > availability.getRemainingCapacity();
 
         Booking booking = Booking.builder()
                 .user(user)
@@ -62,11 +60,18 @@ public class BookingService {
                 .endTime(request.getEndTime())
                 .purpose(request.getPurpose())
                 .attendees(request.getAttendees())
-                .status(BookingStatus.PENDING)
+                .status(shouldWaitlist ? BookingStatus.WAITLISTED : BookingStatus.PENDING)
                 .build();
 
         Booking saved = bookingRepository.save(booking);
-        createAuditLog(saved, "CREATED", user.getName());
+        createAuditLog(saved, shouldWaitlist ? "WAITLISTED" : "CREATED", user.getName());
+        if (shouldWaitlist) {
+            notificationService.createNotification(
+                    booking.getUser(),
+                    "Your booking request for " + booking.getResource().getName() + " on " + booking.getDate()
+                            + " has been added to the WAITLIST due to full capacity."
+            );
+        }
         return mapToResponse(saved);
     }
 
