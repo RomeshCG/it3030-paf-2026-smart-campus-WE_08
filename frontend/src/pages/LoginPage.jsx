@@ -34,7 +34,11 @@ export default function LoginPage() {
       await login(email, password);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid email or password');
+      if (!err?.response) {
+        setError('Cannot reach server. Please make sure backend is running on port 8080.');
+      } else {
+        setError(err.response?.data?.message || 'Invalid email or password');
+      }
     } finally {
       setLoading(false);
     }

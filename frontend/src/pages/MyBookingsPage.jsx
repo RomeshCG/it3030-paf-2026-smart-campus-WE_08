@@ -61,10 +61,16 @@ export const MyBookingsPage = ({ embedded = false }) => {
         switch (status) {
             case 'APPROVED': return 'default';
             case 'PENDING': return 'secondary';
+            case 'WAITLISTED': return 'secondary';
             case 'REJECTED': return 'destructive';
             case 'CANCELLED': return 'outline';
             default: return 'outline';
         }
+    };
+
+    const getStatusLabel = (status) => {
+        if (status === 'WAITLISTED') return 'WAITLISTED - pending capacity';
+        return status;
     };
 
     if (loading) return <div className="flex justify-center py-20"><div className="spinner"></div></div>;
@@ -112,7 +118,7 @@ export const MyBookingsPage = ({ embedded = false }) => {
                                     <CardHeader>
                                         <div className="flex flex-wrap items-center justify-between gap-2">
                                             <CardTitle className="text-lg">{booking.resourceName}</CardTitle>
-                                            <Badge variant={getStatusVariant(booking.status)}>{booking.status}</Badge>
+                                            <Badge variant={getStatusVariant(booking.status)}>{getStatusLabel(booking.status)}</Badge>
                                         </div>
                                     </CardHeader>
                                     <CardContent className="space-y-4">
@@ -130,11 +136,21 @@ export const MyBookingsPage = ({ embedded = false }) => {
                                                 </div>
                                             </div>
                                         )}
+                                        {booking.status === 'WAITLISTED' && (
+                                            <div className="rounded-md border border-slate-300/50 bg-slate-100/60 p-3 text-sm text-slate-700">
+                                                This request is in the waitlist queue. You will be auto-promoted when capacity becomes available.
+                                            </div>
+                                        )}
+                                        {booking.status === 'APPROVED' && booking.promotedAt && (
+                                            <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-700">
+                                                Auto-promoted from waitlist at {new Date(booking.promotedAt).toLocaleString()}.
+                                            </div>
+                                        )}
                                         <div className="flex flex-wrap gap-2">
                                             <Button variant="outline" onClick={() => handleViewHistory(booking.id)}>
                                                 <Clock className="mr-2 size-4" /> View History
                                             </Button>
-                                            {(booking.status === 'PENDING' || booking.status === 'APPROVED') && (
+                                            {(booking.status === 'PENDING' || booking.status === 'APPROVED' || booking.status === 'WAITLISTED') && (
                                                 <Button variant="destructive" onClick={() => handleCancel(booking.id)}>
                                                     <XCircle className="mr-2 size-4" /> Cancel
                                                 </Button>

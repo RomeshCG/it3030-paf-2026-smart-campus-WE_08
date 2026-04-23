@@ -67,6 +67,18 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
                                                         @Param("excludeBookingId") Long excludeBookingId,
                                                         @Param("countableStatuses") List<BookingStatus> countableStatuses);
 
+    @Query("SELECT b FROM Booking b " +
+           "WHERE b.resource.id = :resourceId " +
+           "AND b.date = :date " +
+           "AND b.status = :waitlistStatus " +
+           "AND ((b.startTime < :endTime AND b.endTime > :startTime)) " +
+           "ORDER BY b.waitlistedAt ASC, b.createdAt ASC, b.id ASC")
+    List<Booking> findWaitlistedOverlappingBookingsFifo(@Param("resourceId") Long resourceId,
+                                                        @Param("date") LocalDate date,
+                                                        @Param("startTime") LocalTime startTime,
+                                                        @Param("endTime") LocalTime endTime,
+                                                        @Param("waitlistStatus") BookingStatus waitlistStatus);
+
     @Query("SELECT b.resource.name, COUNT(b) FROM Booking b GROUP BY b.resource.name")
     List<Object[]> countBookingsByResource();
 

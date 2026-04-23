@@ -50,9 +50,7 @@ public class BookingService {
                 request.getStartTime(),
                 request.getEndTime()
         );
-        if (request.getAttendees() > availability.getRemainingCapacity()) {
-            throw new IllegalStateException("Capacity full for selected slot. Remaining seats: " + availability.getRemainingCapacity());
-        }
+        boolean shouldWaitlist = request.getAttendees() > availability.getRemainingCapacity();
 
         Booking booking = Booking.builder()
                 .user(user)
@@ -62,11 +60,21 @@ public class BookingService {
                 .endTime(request.getEndTime())
                 .purpose(request.getPurpose())
                 .attendees(request.getAttendees())
-                .status(BookingStatus.PENDING)
+                .status(shouldWaitlist ? BookingStatus.WAITLISTED : BookingStatus.PENDING)
                 .build();
+        if (shouldWaitlist) {
+            booking.setWaitlistedAt(LocalDateTime.now());
+        }
 
         Booking saved = bookingRepository.save(booking);
-        createAuditLog(saved, "CREATED", user.getName());
+        createAuditLog(saved, shouldWaitlist ? "WAITLISTED" : "CREATED", user.getName());
+        if (shouldWaitlist) {
+            notificationService.createNotification(
+                    booking.getUser(),
+                    "Your booking request for " + booking.getResource().getName() + " on " + booking.getDate()
+                            + " has been added to the WAITLIST due to full capacity."
+            );
+        }
         return mapToResponse(saved);
     }
 
@@ -148,8 +156,8 @@ public class BookingService {
             throw new IllegalStateException("Booking is already approved");
         }
         
-        if (booking.getStatus() != BookingStatus.PENDING) {
-            throw new IllegalStateException("Only pending bookings can be approved");
+        if (booking.getStatus() != BookingStatus.PENDING && booking.getStatus() != BookingStatus.WAITLISTED) {
+            throw new IllegalStateException("Only pending or waitlisted bookings can be approved");
         }
 
         Integer approvedSeats = bookingRepository.sumAttendeesForOverlappingBookingsExcluding(
@@ -175,7 +183,11 @@ public class BookingService {
             throw new IllegalArgumentException("Override reason is required when approving over capacity");
         }
 
+        boolean wasWaitlisted = booking.getStatus() == BookingStatus.WAITLISTED;
         booking.setStatus(BookingStatus.APPROVED);
+        if (wasWaitlisted) {
+            booking.setPromotedAt(LocalDateTime.now());
+        }
         booking.setCapacityOverridden(wouldExceedCapacity && forceOverride);
         booking.setOverrideReason(wouldExceedCapacity && forceOverride ? overrideReason.trim() : null);
         Booking saved = bookingRepository.save(booking);
@@ -189,15 +201,19 @@ public class BookingService {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Booking not found"));
 
-        if (booking.getStatus() != BookingStatus.PENDING) {
-            throw new IllegalStateException("Only pending bookings can be rejected");
+        if (booking.getStatus() != BookingStatus.PENDING && booking.getStatus() != BookingStatus.WAITLISTED) {
+            throw new IllegalStateException("Only pending or waitlisted bookings can be rejected");
         }
 
+        boolean freedCapacity = booking.getStatus() == BookingStatus.PENDING;
         booking.setStatus(BookingStatus.REJECTED);
         booking.setRejectionReason(reason);
         Booking saved = bookingRepository.save(booking);
         createAuditLog(saved, "REJECTED", "ADMIN");
         notificationService.createNotification(booking.getUser(), "Your booking for " + booking.getResource().getName() + " on " + booking.getDate() + " has been REJECTED. Reason: " + reason);
+        if (freedCapacity) {
+            processWaitlistForSlot(booking.getResource().getId(), booking.getDate(), booking.getStartTime(), booking.getEndTime());
+        }
         return mapToResponse(saved);
     }
 
@@ -215,9 +231,13 @@ public class BookingService {
             throw new IllegalStateException("Booking is already in a terminal state");
         }
 
+        boolean freedCapacity = booking.getStatus() == BookingStatus.PENDING || booking.getStatus() == BookingStatus.APPROVED;
         booking.setStatus(BookingStatus.CANCELLED);
         Booking saved = bookingRepository.save(booking);
         createAuditLog(saved, "CANCELLED", user.getName());
+        if (freedCapacity) {
+            processWaitlistForSlot(booking.getResource().getId(), booking.getDate(), booking.getStartTime(), booking.getEndTime());
+        }
         return mapToResponse(saved);
     }
 
@@ -242,6 +262,46 @@ public class BookingService {
                 .rejectionReason(booking.getRejectionReason())
                 .capacityOverridden(Boolean.TRUE.equals(booking.getCapacityOverridden()))
                 .overrideReason(booking.getOverrideReason())
+                .waitlistedAt(booking.getWaitlistedAt())
+                .promotedAt(booking.getPromotedAt())
                 .build();
+    }
+
+    private void processWaitlistForSlot(Long resourceId, java.time.LocalDate date, LocalTime startTime, LocalTime endTime) {
+        List<Booking> waitlisted = bookingRepository.findWaitlistedOverlappingBookingsFifo(
+                resourceId,
+                date,
+                startTime,
+                endTime,
+                BookingStatus.WAITLISTED
+        );
+
+        for (Booking candidate : waitlisted) {
+            Integer currentlyUsed = bookingRepository.sumAttendeesForOverlappingBookingsExcluding(
+                    candidate.getResource().getId(),
+                    candidate.getDate(),
+                    candidate.getStartTime(),
+                    candidate.getEndTime(),
+                    candidate.getId(),
+                    CAPACITY_COUNTABLE_STATUSES
+            );
+            int usedSeats = currentlyUsed == null ? 0 : currentlyUsed;
+            int remainingSeats = Math.max(candidate.getResource().getCapacity() - usedSeats, 0);
+
+            // Strict FIFO: stop promotion when first queued request cannot fit.
+            if (candidate.getAttendees() > remainingSeats) {
+                break;
+            }
+
+            candidate.setStatus(BookingStatus.APPROVED);
+            candidate.setPromotedAt(LocalDateTime.now());
+            Booking promoted = bookingRepository.save(candidate);
+            createAuditLog(promoted, "PROMOTED_FROM_WAITLIST", "SYSTEM");
+            notificationService.createNotification(
+                    promoted.getUser(),
+                    "Good news! Your waitlisted booking for " + promoted.getResource().getName() + " on "
+                            + promoted.getDate() + " has been APPROVED."
+            );
+        }
     }
 }
