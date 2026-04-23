@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import smart_campus_backend.booking.entity.BookingStatus;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 @Data
@@ -29,4 +30,6 @@ public class BookingResponse {
     private String rejectionReason;
     private Boolean capacityOverridden;
     private String overrideReason;
+    private LocalDateTime waitlistedAt;
+    private LocalDateTime promotedAt;
 }
