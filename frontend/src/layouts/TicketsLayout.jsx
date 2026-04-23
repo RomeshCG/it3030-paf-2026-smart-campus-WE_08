@@ -7,6 +7,7 @@ export default function TicketsLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const role = user?.role ?? 'USER';
+  const isUser = role === 'USER';
 
   const handleNav = (key) => {
     if (key === 'dashboard') {
@@ -58,10 +59,16 @@ export default function TicketsLayout() {
         onLogout={handleLogout}
         onSettings={() => navigate('/dashboard')}
       />
-      <SidebarInset>
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200 bg-white/80 px-6 backdrop-blur-md dark:border-slate-800 dark:bg-slate-950/80 md:px-8">
+      <SidebarInset className={isUser ? 'legacy-module' : ''}>
+        <header
+          className={
+            isUser
+              ? 'sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[var(--border-color)] bg-[var(--glass-bg)] px-6 backdrop-blur-md md:px-8 text-[var(--text-primary)]'
+              : 'sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200 bg-white/80 px-6 backdrop-blur-md dark:border-slate-800 dark:bg-slate-950/80 md:px-8'
+          }
+        >
           <div className="flex items-center gap-3">
-            <SidebarTrigger />
+            <SidebarTrigger className={isUser ? 'text-[var(--text-primary)]' : ''} />
             <h1 className="text-lg font-semibold md:text-xl">Tickets</h1>
           </div>
         </header>

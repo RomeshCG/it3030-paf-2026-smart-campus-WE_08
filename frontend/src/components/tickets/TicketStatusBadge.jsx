@@ -9,8 +9,25 @@ const VARIANTS = {
   REJECTED: 'bg-red-100 text-red-900 dark:bg-red-950 dark:text-red-200',
 };
 
-export default function TicketStatusBadge({ status, className }) {
+const LEGACY_VARIANTS = {
+  OPEN: 'badge-glow-info',
+  IN_PROGRESS: 'badge-glow-warning',
+  RESOLVED: 'badge-glow-success',
+  CLOSED: 'badge-glow-default',
+  REJECTED: 'badge-glow-danger',
+};
+
+export default function TicketStatusBadge({ status, className, isUser }) {
   const label = status?.replace(/_/g, ' ') ?? '—';
+  
+  if (isUser) {
+    return (
+      <span className={cn('badge', LEGACY_VARIANTS[status] ?? 'badge-glow-default', className)}>
+        {label}
+      </span>
+    );
+  }
+
   return (
     <Badge variant="outline" className={cn('border-0 font-medium', VARIANTS[status] ?? '', className)}>
       {label}

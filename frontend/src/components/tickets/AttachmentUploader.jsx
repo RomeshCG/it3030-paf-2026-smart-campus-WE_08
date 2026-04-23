@@ -30,6 +30,7 @@ function PreviewThumb({ file, disabled, onRemove }) {
 }
 
 export default function AttachmentUploader({
+  isUser,
   files,
   onChange,
   disabled = false,
@@ -61,7 +62,7 @@ export default function AttachmentUploader({
   return (
     <div className="space-y-3">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <Label htmlFor={`${idPrefix}-file`}>Images (max {MAX_FILES})</Label>
+        <Label htmlFor={`${idPrefix}-file`} className={isUser ? "text-slate-600" : ""}>Images (max {MAX_FILES})</Label>
         <input
           ref={inputRef}
           id={`${idPrefix}-file`}
@@ -75,15 +76,26 @@ export default function AttachmentUploader({
             e.target.value = '';
           }}
         />
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={disabled || files.length >= MAX_FILES}
-          onClick={() => inputRef.current?.click()}
-        >
-          Choose images
-        </Button>
+        {isUser ? (
+          <button
+            type="button"
+            className="bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 px-3 py-1.5 rounded-lg font-medium text-xs transition-colors"
+            disabled={disabled || files.length >= MAX_FILES}
+            onClick={() => inputRef.current?.click()}
+          >
+            Choose images
+          </button>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={disabled || files.length >= MAX_FILES}
+            onClick={() => inputRef.current?.click()}
+          >
+            Choose images
+          </Button>
+        )}
       </div>
       {localError ? <p className="text-xs text-destructive">{localError}</p> : null}
       {previews && files.length > 0 ? (

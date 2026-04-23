@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Ticket, ListFilter } from 'lucide-react';
 import TicketCreateSheet from '@/components/tickets/TicketCreateSheet';
 import TicketFilters from '@/components/tickets/TicketFilters';
 import TicketTable from '@/components/tickets/TicketTable';
@@ -43,13 +42,16 @@ export default function MyTicketsPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 container">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h2 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">My tickets</h2>
-          <p className="text-sm text-slate-600 dark:text-slate-400">Track requests you have submitted.</p>
+        <div className="flex items-center gap-3">
+          <Ticket className="h-8 w-8 text-[var(--accent-color)]" />
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight gradient-text">My tickets</h2>
+            <p className="text-[var(--text-secondary)]">Track requests you have submitted.</p>
+          </div>
         </div>
-        <TicketCreateSheet triggerLabel="Create ticket" onCreated={() => load()} />
+        <TicketCreateSheet triggerLabel="Create ticket" onCreated={() => load()} triggerVariant="primary" triggerClassName="btn btn-primary" />
       </div>
 
       <TicketFilters
@@ -64,22 +66,25 @@ export default function MyTicketsPage() {
         idPrefix="my"
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Your requests</CardTitle>
-          <CardDescription>Filtered results update instantly.</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <div className="glass-panel glass-panel-hover">
+        <div className="mb-6 flex items-center gap-2 border-b border-[var(--glass-border)] pb-4">
+          <ListFilter className="h-5 w-5 text-[var(--text-secondary)]" />
+          <div>
+            <h3 className="text-xl font-semibold text-[var(--text-primary)]">Your requests</h3>
+            <p className="text-sm text-[var(--text-secondary)]">Filtered results update instantly.</p>
+          </div>
+        </div>
+        <div>
           {error ? (
             <div className="mb-4 flex flex-wrap items-center gap-2">
-              <p className="text-sm text-destructive">{error}</p>
-              <Button type="button" variant="outline" size="sm" onClick={() => load()}>
+              <p className="text-sm text-[var(--danger)]">{error}</p>
+              <button type="button" className="btn btn-secondary" onClick={() => load()}>
                 Retry
-              </Button>
+              </button>
             </div>
           ) : null}
           {loading ? (
-            <p className="text-sm text-slate-500">Loading tickets…</p>
+            <div className="spinner mt-4" />
           ) : (
             <TicketTable
               tickets={filtered}
@@ -91,8 +96,8 @@ export default function MyTicketsPage() {
               }
             />
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
