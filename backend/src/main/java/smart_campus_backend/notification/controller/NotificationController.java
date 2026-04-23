@@ -9,7 +9,9 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 import smart_campus_backend.auth.entity.User;
 import smart_campus_backend.auth.repository.UserRepository;
+import smart_campus_backend.notification.dto.NotificationResponse;
 import smart_campus_backend.notification.entity.Notification;
+import smart_campus_backend.notification.entity.NotificationType;
 import smart_campus_backend.notification.service.NotificationService;
 
 import java.util.List;
@@ -24,9 +26,12 @@ public class NotificationController {
     private final UserRepository userRepository;
 
     @GetMapping
-    public ResponseEntity<List<Notification>> getMyNotifications(@AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<List<NotificationResponse>> getMyNotifications(@AuthenticationPrincipal UserDetails userDetails) {
         User user = getUserByEmail(userDetails);
-        return ResponseEntity.ok(notificationService.getMyNotifications(user));
+        List<NotificationResponse> payload = notificationService.getMyNotifications(user).stream()
+                .map(this::mapToResponse)
+                .toList();
+        return ResponseEntity.ok(payload);
     }
 
     @GetMapping("/unread-count")
@@ -54,5 +59,16 @@ public class NotificationController {
         }
         return userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new UsernameNotFoundException("Authenticated user not found"));
+    }
+
+    private NotificationResponse mapToResponse(Notification notification) {
+        return NotificationResponse.builder()
+                .id(notification.getId())
+                .message(notification.getMessage())
+                .type(notification.getType() == null ? NotificationType.GENERAL : notification.getType())
+                .link(notification.getLink())
+                .isRead(notification.isRead())
+                .timestamp(notification.getTimestamp())
+                .build();
     }
 }

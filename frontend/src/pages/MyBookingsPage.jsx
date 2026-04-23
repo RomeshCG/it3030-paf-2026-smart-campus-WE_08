@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { getMyBookings, cancelBooking, getBookingHistory } from '../api/bookingApi';
 import { BookingHistory } from '../components/BookingHistory';
-import { Calendar, Clock, MapPin, XCircle, Info, RefreshCw, MessageSquare, Bell } from 'lucide-react';
+import { Calendar, Clock, MapPin, XCircle, Info, RefreshCw, MessageSquare } from 'lucide-react';
+import { NotificationBell } from '../components/NotificationBell';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -182,9 +183,7 @@ export const MyBookingsPage = ({ embedded = false }) => {
                         <SidebarTrigger />
                         <h1 className="text-xl font-semibold">My Bookings</h1>
                     </div>
-                    <Button variant="ghost" size="icon" className="relative text-slate-500">
-                        <Bell className="size-5" />
-                    </Button>
+                    <NotificationBell />
                 </header>
                 {content}
             </SidebarInset>

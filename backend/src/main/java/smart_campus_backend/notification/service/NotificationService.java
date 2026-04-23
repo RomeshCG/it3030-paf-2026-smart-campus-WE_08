@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import smart_campus_backend.auth.entity.User;
 import smart_campus_backend.notification.entity.Notification;
+import smart_campus_backend.notification.entity.NotificationType;
 import smart_campus_backend.notification.repository.NotificationRepository;
 
 import java.time.LocalDateTime;
@@ -18,9 +19,16 @@ public class NotificationService {
 
     @Transactional
     public void createNotification(User user, String message) {
+        createNotification(user, message, NotificationType.GENERAL, null);
+    }
+
+    @Transactional
+    public void createNotification(User user, String message, NotificationType type, String link) {
         Notification notification = Notification.builder()
                 .user(user)
                 .message(message)
+                .type(type == null ? NotificationType.GENERAL : type)
+                .link(link)
                 .timestamp(LocalDateTime.now())
                 .isRead(false)
                 .build();

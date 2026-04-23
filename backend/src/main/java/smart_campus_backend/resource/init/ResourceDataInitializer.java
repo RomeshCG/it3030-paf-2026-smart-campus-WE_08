@@ -50,6 +50,10 @@ public class ResourceDataInitializer implements CommandLineRunner {
     }
 
     private void seedResources() {
+        if (repo.count() > 0) {
+            log.info("Skipping resource seed. Existing campus resources found.");
+            return;
+        }
 
         List<CampusResource> resources = List.of(
             CampusResource.builder()

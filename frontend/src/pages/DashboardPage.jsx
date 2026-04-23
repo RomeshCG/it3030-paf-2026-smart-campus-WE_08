@@ -14,7 +14,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
-import { Bell, BookOpen, Building2, Copy, LifeBuoy, MoreHorizontal, ShieldCheck, BarChart3 } from 'lucide-react';
+import { BookOpen, Building2, Copy, LifeBuoy, MoreHorizontal, ShieldCheck, BarChart3 } from 'lucide-react';
+import { NotificationBell } from '../components/NotificationBell';
 import { ADMIN_ROLES } from '@/constants/roles';
 import { MyBookingsPage } from '@/pages/MyBookingsPage';
 import { AdminBookingPage } from '@/pages/AdminBookingPage';
@@ -470,9 +471,7 @@ export default function DashboardPage() {
             {activePage === 'manage-bookings' && 'Manage Bookings'}
             </h1>
           </div>
-          <Button variant="ghost" size="icon" className="relative text-slate-500">
-            <Bell className="size-5" />
-          </Button>
+          <NotificationBell />
         </header>
 
         <div className="p-8">

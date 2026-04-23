@@ -1,13 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bell, Check, MailOpen } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { getMyNotifications, getUnreadCount, markAsRead, markAllAsRead } from '../api/notificationApi';
 import toast from 'react-hot-toast';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 
 export const NotificationBell = () => {
+    const navigate = useNavigate();
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [isOpen, setIsOpen] = useState(false);
-    const dropdownRef = useRef(null);
 
     const fetchNotifications = async () => {
         try {
@@ -29,14 +32,10 @@ export const NotificationBell = () => {
     }, []);
 
     useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-                setIsOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+        if (isOpen) {
+            fetchNotifications();
+        }
+    }, [isOpen]);
 
     const handleMarkAsRead = async (id) => {
         try {
@@ -45,6 +44,41 @@ export const NotificationBell = () => {
         } catch (err) {
             toast.error('Failed to mark as read');
         }
+    };
+
+    const handleOpenNotification = async (notif) => {
+        try {
+            if (!isNotificationRead(notif)) {
+                await markAsRead(notif.id);
+            }
+            if (notif.link) {
+                navigate(notif.link);
+            }
+            fetchNotifications();
+            setIsOpen(false);
+        } catch (err) {
+            toast.error('Failed to open notification');
+        }
+    };
+
+    const getTypeColor = (type) => {
+        switch (type) {
+            case 'BOOKING':
+                return '#2563eb';
+            case 'TICKET':
+                return '#7c3aed';
+            case 'SYSTEM':
+                return '#d97706';
+            default:
+                return 'var(--text-secondary)';
+        }
+    };
+
+    const isNotificationRead = (notif) => {
+        if (!notif) return false;
+        if (typeof notif.isRead === 'boolean') return notif.isRead;
+        if (typeof notif.read === 'boolean') return notif.read;
+        return false;
     };
 
     const handleMarkAllAsRead = async () => {
@@ -58,140 +92,94 @@ export const NotificationBell = () => {
     };
 
     return (
-        <div style={{ position: 'relative' }} ref={dropdownRef}>
-            <button 
-                onClick={() => setIsOpen(!isOpen)}
-                style={{ 
-                    background: 'none', 
-                    border: 'none', 
-                    color: 'var(--text-primary)', 
-                    cursor: 'pointer',
-                    position: 'relative',
-                    padding: '8px'
-                }}
-            >
-                <Bell size={24} />
-                {unreadCount > 0 && (
-                    <span style={{
-                        position: 'absolute',
-                        top: '0',
-                        right: '0',
-                        background: 'var(--danger)',
-                        color: 'white',
-                        borderRadius: '50%',
-                        width: '18px',
-                        height: '18px',
-                        fontSize: '11px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 'bold',
-                        border: '2px solid var(--bg-primary)'
-                    }}>
-                        {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                )}
-            </button>
+        <Sheet open={isOpen} onOpenChange={setIsOpen}>
+            <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative text-slate-500">
+                    <Bell className="size-5" />
+                    {unreadCount > 0 && (
+                        <span className="absolute -top-1 -right-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white">
+                            {unreadCount > 9 ? '9+' : unreadCount}
+                        </span>
+                    )}
+                </Button>
+            </SheetTrigger>
 
-            {isOpen && (
-                <div className="glass-panel" style={{
-                    position: 'absolute',
-                    top: '100%',
-                    right: '0',
-                    width: '320px',
-                    maxHeight: '450px',
-                    overflowY: 'auto',
-                    zIndex: 1000,
-                    marginTop: '10px',
-                    padding: '0',
-                    boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
-                    animation: 'fade-in 0.2s ease-out'
-                }}>
-                    <div style={{ 
-                        padding: '12px 16px', 
-                        borderBottom: '1px solid var(--border-color)',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        background: 'rgba(255,255,255,0.05)'
-                    }}>
-                        <h4 style={{ margin: 0 }}>Notifications</h4>
+            <SheetContent side="right" className="w-full p-0 sm:max-w-md">
+                <SheetHeader className="border-b px-4 py-3">
+                    <div className="flex items-center justify-between pr-10">
+                        <SheetTitle>Notifications</SheetTitle>
                         {unreadCount > 0 && (
-                            <button 
-                                onClick={handleMarkAllAsRead}
-                                style={{ 
-                                    background: 'none', 
-                                    border: 'none', 
-                                    color: 'var(--accent-color)', 
-                                    fontSize: '12px', 
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '4px'
-                                }}
-                            >
-                                <MailOpen size={14} /> Mark all read
-                            </button>
+                            <Button variant="ghost" size="sm" onClick={handleMarkAllAsRead}>
+                                <MailOpen className="mr-1 size-4" />
+                                Mark all read
+                            </Button>
                         )}
                     </div>
+                </SheetHeader>
 
-                    <div style={{ padding: '8px 0' }}>
-                        {notifications.length === 0 ? (
-                            <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                                No notifications yet
-                            </div>
-                        ) : (
-                            notifications.map(notif => (
-                                <div 
-                                    key={notif.id} 
-                                    style={{ 
-                                        padding: '12px 16px', 
-                                        borderBottom: '1px solid rgba(255,255,255,0.05)',
-                                        background: notif.isRead ? 'transparent' : 'rgba(99, 102, 241, 0.05)',
-                                        display: 'flex',
-                                        gap: '12px',
-                                        transition: 'background 0.2s'
-                                    }}
-                                >
-                                    <div style={{ flex: 1 }}>
-                                        <p style={{ 
-                                            margin: '0 0 4px 0', 
-                                            fontSize: '13px', 
-                                            lineHeight: '1.4',
-                                            color: notif.isRead ? 'var(--text-secondary)' : 'var(--text-primary)'
-                                        }}>
+                <div className="max-h-[calc(100vh-80px)] overflow-y-auto">
+                    {notifications.length === 0 ? (
+                        <div className="p-8 text-center text-sm text-muted-foreground">
+                            No notifications yet
+                        </div>
+                    ) : (
+                        notifications.map((notif) => {
+                            const isRead = isNotificationRead(notif);
+                            return (
+                            <div
+                                key={notif.id}
+                                className={`border-b px-4 py-3 transition-colors ${
+                                    isRead
+                                        ? 'bg-transparent'
+                                        : 'border-l-4 border-l-primary bg-primary/10 dark:bg-primary/15'
+                                }`}
+                            >
+                                <div className="flex gap-3">
+                                    <div className="flex-1">
+                                        <div className="mb-2 flex items-center gap-2">
+                                            <span
+                                                className="rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-wide"
+                                                style={{
+                                                    color: getTypeColor(notif.type),
+                                                    borderColor: getTypeColor(notif.type),
+                                                }}
+                                            >
+                                                {notif.type || 'GENERAL'}
+                                            </span>
+                                            {!isRead && (
+                                                <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                                                    Unread
+                                                </span>
+                                            )}
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleOpenNotification(notif)}
+                                            className={`mb-1 block text-left text-sm leading-5 ${notif.link ? 'cursor-pointer hover:underline' : 'cursor-default'} ${isRead ? 'text-muted-foreground' : 'text-foreground'}`}
+                                        >
                                             {notif.message}
-                                        </p>
-                                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                                        </button>
+                                        <p className="text-xs text-muted-foreground">
                                             {new Date(notif.timestamp).toLocaleString()}
-                                        </span>
+                                        </p>
                                     </div>
-                                    {!notif.isRead && (
-                                        <button 
+                                    {!isRead && (
+                                        <Button
+                                            variant="ghost"
+                                            size="icon-sm"
                                             onClick={() => handleMarkAsRead(notif.id)}
-                                            style={{ 
-                                                background: 'rgba(255,255,255,0.1)', 
-                                                border: 'none', 
-                                                borderRadius: '50%', 
-                                                width: '24px', 
-                                                height: '24px', 
-                                                display: 'flex', 
-                                                alignItems: 'center', 
-                                                justifyContent: 'center',
-                                                cursor: 'pointer',
-                                                color: 'var(--success)'
-                                            }}
                                             title="Mark as read"
                                         >
-                                            <Check size={14} />
-                                        </button>
+                                            <Check className="size-4 text-emerald-600" />
+                                        </Button>
                                     )}
                                 </div>
-                            ))
-                        )}
-                    </div>
+                            </div>
+                            );
+                        })
+                    )}
                 </div>
-            )}
-        </div>
+            </SheetContent>
+        </Sheet>
     );
 };

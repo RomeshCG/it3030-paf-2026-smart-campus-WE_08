@@ -13,6 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 import smart_campus_backend.auth.entity.Role;
 import smart_campus_backend.auth.entity.User;
 import smart_campus_backend.auth.repository.UserRepository;
+import smart_campus_backend.mail.NotificationEmailService;
 import smart_campus_backend.modulec.ticket.dto.*;
 import smart_campus_backend.modulec.ticket.entity.Ticket;
 import smart_campus_backend.modulec.ticket.entity.TicketAttachment;
@@ -23,6 +24,8 @@ import smart_campus_backend.modulec.ticket.exception.TicketNotFoundException;
 import smart_campus_backend.modulec.ticket.repository.TicketAttachmentRepository;
 import smart_campus_backend.modulec.ticket.repository.TicketCommentRepository;
 import smart_campus_backend.modulec.ticket.repository.TicketRepository;
+import smart_campus_backend.notification.entity.NotificationType;
+import smart_campus_backend.notification.service.NotificationService;
 
 import java.io.IOException;
 import java.util.List;
@@ -50,6 +53,8 @@ public class TicketServiceImpl implements TicketService {
     private final TicketAttachmentRepository ticketAttachmentRepository;
     private final UserRepository userRepository;
     private final Cloudinary cloudinary;
+    private final NotificationService notificationService;
+    private final NotificationEmailService notificationEmailService;
 
     @Override
     @Transactional
@@ -132,6 +137,7 @@ public class TicketServiceImpl implements TicketService {
             ticket.setResolutionNotes(request.getResolutionNotes().trim());
         }
         ticket = ticketRepository.save(ticket);
+        notifyTicketStatusChanged(ticket);
         return mapTicketToResponse(ticket, true);
     }
 
@@ -154,6 +160,7 @@ public class TicketServiceImpl implements TicketService {
         }
         ticket.setAssignedTechnician(technician);
         ticket = ticketRepository.save(ticket);
+        notifyTicketAssigned(ticket, technician);
         return mapTicketToResponse(ticket, true);
     }
 
@@ -190,6 +197,7 @@ public class TicketServiceImpl implements TicketService {
         ticket.setStatus(TicketStatus.REJECTED);
         ticket.setRejectionReason(request.getReason().trim());
         ticket = ticketRepository.save(ticket);
+        notifyTicketRejected(ticket);
         return mapTicketToResponse(ticket, true);
     }
 
@@ -467,5 +475,50 @@ public class TicketServiceImpl implements TicketService {
             base = base.substring(0, 200);
         }
         return base;
+    }
+
+    private void notifyTicketStatusChanged(Ticket ticket) {
+        String message = "Your ticket #" + ticket.getId() + " (" + ticket.getTitle()
+                + ") status changed to " + ticket.getStatus() + ".";
+        String link = "/tickets/" + ticket.getId();
+        notificationService.createNotification(ticket.getCreatedBy(), message, NotificationType.TICKET, link);
+        notificationEmailService.sendNotificationEmail(
+                ticket.getCreatedBy().getEmail(),
+                "Ticket status updated - Smart Campus",
+                message + "\n\nOpen the app to view details."
+        );
+    }
+
+    private void notifyTicketAssigned(Ticket ticket, User technician) {
+        String link = "/tickets/" + ticket.getId();
+        String reporterMessage = "Your ticket #" + ticket.getId() + " (" + ticket.getTitle()
+                + ") has been assigned to technician " + technician.getName() + ".";
+        notificationService.createNotification(ticket.getCreatedBy(), reporterMessage, NotificationType.TICKET, link);
+        notificationEmailService.sendNotificationEmail(
+                ticket.getCreatedBy().getEmail(),
+                "Ticket assigned - Smart Campus",
+                reporterMessage + "\n\nOpen the app to view details."
+        );
+
+        String technicianMessage = "Ticket #" + ticket.getId() + " (" + ticket.getTitle()
+                + ") has been assigned to you.";
+        notificationService.createNotification(technician, technicianMessage, NotificationType.TICKET, link);
+        notificationEmailService.sendNotificationEmail(
+                technician.getEmail(),
+                "New ticket assignment - Smart Campus",
+                technicianMessage + "\n\nOpen the app to view details."
+        );
+    }
+
+    private void notifyTicketRejected(Ticket ticket) {
+        String message = "Your ticket #" + ticket.getId() + " (" + ticket.getTitle()
+                + ") has been REJECTED. Reason: " + ticket.getRejectionReason();
+        String link = "/tickets/" + ticket.getId();
+        notificationService.createNotification(ticket.getCreatedBy(), message, NotificationType.TICKET, link);
+        notificationEmailService.sendNotificationEmail(
+                ticket.getCreatedBy().getEmail(),
+                "Ticket rejected - Smart Campus",
+                message + "\n\nOpen the app to view details."
+        );
     }
 }
