@@ -18,7 +18,7 @@ export const AdminBookingPage = ({ embedded = false }) => {
 
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState('ALL'); // ALL, PENDING, APPROVED, REJECTED, CANCELLED
+    const [filter, setFilter] = useState('ALL'); // ALL, PENDING, WAITLISTED, APPROVED, REJECTED, CANCELLED
     const [search, setSearch] = useState('');
     
     // Rejection Modal State
@@ -135,6 +135,7 @@ export const AdminBookingPage = ({ embedded = false }) => {
     const getStatusVariant = (status) => {
         switch (status) {
             case 'APPROVED': return 'default';
+            case 'WAITLISTED': return 'secondary';
             case 'REJECTED': return 'destructive';
             case 'CANCELLED': return 'outline';
             default: return 'secondary';
@@ -190,6 +191,7 @@ export const AdminBookingPage = ({ embedded = false }) => {
                                     >
                                         <option value="ALL">All Statuses</option>
                                         <option value="PENDING">Pending Only</option>
+                                        <option value="WAITLISTED">Waitlisted</option>
                                         <option value="APPROVED">Approved</option>
                                         <option value="REJECTED">Rejected</option>
                                         <option value="CANCELLED">Cancelled</option>
