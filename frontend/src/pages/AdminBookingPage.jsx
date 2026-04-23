@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { getAllBookings, approveBooking, rejectBooking, getTimeSlotAvailability } from '../api/bookingApi';
 import { CheckCircle, XCircle, Clock, Users, Calendar as CalendarIcon, MessageSquare, Shield, Search, Filter, Bell } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -132,6 +132,33 @@ export const AdminBookingPage = ({ embedded = false }) => {
         return matchesFilter && matchesSearch;
     });
 
+    const waitlistQueueByBookingId = useMemo(() => {
+        const queueMap = new Map();
+        const grouped = new Map();
+
+        bookings
+            .filter((booking) => booking.status === 'WAITLISTED')
+            .forEach((booking) => {
+                const key = `${booking.resourceId}|${booking.date}|${booking.startTime}|${booking.endTime}`;
+                const current = grouped.get(key) || [];
+                current.push(booking);
+                grouped.set(key, current);
+            });
+
+        grouped.forEach((items) => {
+            items
+                .sort((a, b) => {
+                    const left = new Date(a.waitlistedAt || a.createdAt || 0).getTime();
+                    const right = new Date(b.waitlistedAt || b.createdAt || 0).getTime();
+                    if (left !== right) return left - right;
+                    return Number(a.id || 0) - Number(b.id || 0);
+                })
+                .forEach((item, index) => queueMap.set(item.id, index + 1));
+        });
+
+        return queueMap;
+    }, [bookings]);
+
     const getStatusVariant = (status) => {
         switch (status) {
             case 'APPROVED': return 'default';
@@ -140,6 +167,17 @@ export const AdminBookingPage = ({ embedded = false }) => {
             case 'CANCELLED': return 'outline';
             default: return 'secondary';
         }
+    };
+
+    const getStatusLabel = (booking) => {
+        if (booking.status === 'WAITLISTED') {
+            const queuePosition = waitlistQueueByBookingId.get(booking.id);
+            return queuePosition ? `WAITLISTED (#${queuePosition})` : 'WAITLISTED';
+        }
+        if (booking.status === 'APPROVED' && booking.promotedAt) {
+            return 'APPROVED (PROMOTED)';
+        }
+        return booking.status;
     };
 
     if (loading) return <div className="flex justify-center py-20"><div className="spinner"></div></div>;
@@ -251,10 +289,20 @@ export const AdminBookingPage = ({ embedded = false }) => {
                                                         <strong>Manual override:</strong> {booking.overrideReason}
                                                     </div>
                                                 )}
+                                                {booking.status === 'WAITLISTED' && (
+                                                    <div className="rounded-md border border-slate-300/50 bg-slate-100/60 p-3 text-xs text-slate-700">
+                                                        Queue position: <strong>#{waitlistQueueByBookingId.get(booking.id) || 'N/A'}</strong>
+                                                    </div>
+                                                )}
+                                                {booking.status === 'APPROVED' && booking.promotedAt && (
+                                                    <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-700">
+                                                        Auto-promoted from waitlist at {new Date(booking.promotedAt).toLocaleString()}.
+                                                    </div>
+                                                )}
                                             </div>
 
                                             <div className="flex flex-col items-end gap-2">
-                                                <Badge variant={getStatusVariant(booking.status)}>{booking.status}</Badge>
+                                                <Badge variant={getStatusVariant(booking.status)}>{getStatusLabel(booking)}</Badge>
                                                 {booking.status === 'PENDING' && (
                                                     <div className="flex gap-2">
                                                         <Button

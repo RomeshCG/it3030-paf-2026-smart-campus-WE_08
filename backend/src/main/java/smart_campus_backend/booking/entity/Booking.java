@@ -61,6 +61,12 @@ public class Booking {
     @Column(name = "override_reason")
     private String overrideReason;
 
+    @Column(name = "waitlisted_at")
+    private java.time.LocalDateTime waitlistedAt;
+
+    @Column(name = "promoted_at")
+    private java.time.LocalDateTime promotedAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @Builder.Default
     private java.time.LocalDateTime createdAt = java.time.LocalDateTime.now();

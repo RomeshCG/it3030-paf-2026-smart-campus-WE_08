@@ -136,6 +136,16 @@ export const MyBookingsPage = ({ embedded = false }) => {
                                                 </div>
                                             </div>
                                         )}
+                                        {booking.status === 'WAITLISTED' && (
+                                            <div className="rounded-md border border-slate-300/50 bg-slate-100/60 p-3 text-sm text-slate-700">
+                                                This request is in the waitlist queue. You will be auto-promoted when capacity becomes available.
+                                            </div>
+                                        )}
+                                        {booking.status === 'APPROVED' && booking.promotedAt && (
+                                            <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-700">
+                                                Auto-promoted from waitlist at {new Date(booking.promotedAt).toLocaleString()}.
+                                            </div>
+                                        )}
                                         <div className="flex flex-wrap gap-2">
                                             <Button variant="outline" onClick={() => handleViewHistory(booking.id)}>
                                                 <Clock className="mr-2 size-4" /> View History
