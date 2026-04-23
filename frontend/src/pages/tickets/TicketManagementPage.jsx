@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { RefreshCw } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +10,28 @@ import TicketFilters from '@/components/tickets/TicketFilters';
 import TicketTable from '@/components/tickets/TicketTable';
 import { filterTicketsLocal } from '@/lib/ticketFilters';
 import { ticketsApi } from '@/services/ticketsApi';
+
+const STATUS_ORDER = {
+  OPEN: 0,
+  IN_PROGRESS: 1,
+  RESOLVED: 2,
+  CLOSED: 3,
+  REJECTED: 4,
+};
+
+function sortQueueTickets(tickets) {
+  return [...tickets].sort((a, b) => {
+    const aOrder = STATUS_ORDER[a.status] ?? 99;
+    const bOrder = STATUS_ORDER[b.status] ?? 99;
+    if (aOrder !== bOrder) {
+      return aOrder - bOrder;
+    }
+
+    const aUpdated = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+    const bUpdated = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+    return bUpdated - aUpdated;
+  });
+}
 
 export default function TicketManagementPage() {
   const { user } = useAuth();
@@ -49,7 +72,7 @@ export default function TicketManagementPage() {
   }, [load]);
 
   const filtered = useMemo(
-    () => filterTicketsLocal(raw, { search, status, priority, category }),
+    () => sortQueueTickets(filterTicketsLocal(raw, { search, status, priority, category })),
     [raw, search, status, priority, category]
   );
 
@@ -65,7 +88,13 @@ export default function TicketManagementPage() {
           </h2>
           <p className="text-sm text-slate-600 dark:text-slate-400">{title}</p>
         </div>
-        <TicketCreateSheet triggerLabel="Log new ticket" triggerVariant="outline" onCreated={() => load()} />
+        <div className="flex items-center gap-2">
+          <Button type="button" variant="outline" onClick={() => load()} disabled={loading}>
+            <RefreshCw className={`mr-1 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <TicketCreateSheet triggerLabel="Log new ticket" triggerVariant="outline" onCreated={() => load()} />
+        </div>
       </div>
 
       <TicketFilters

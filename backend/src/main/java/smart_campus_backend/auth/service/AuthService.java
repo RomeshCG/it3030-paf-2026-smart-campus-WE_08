@@ -6,6 +6,7 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -13,6 +14,9 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.multipart.MultipartFile;
 import smart_campus_backend.auth.dto.AuthResponse;
 import smart_campus_backend.auth.dto.CurrentUserResponse;
@@ -23,15 +27,19 @@ import smart_campus_backend.auth.dto.UpdateProfileRequest;
 import smart_campus_backend.auth.entity.AdminInvite;
 import smart_campus_backend.auth.entity.AuthProvider;
 import smart_campus_backend.auth.entity.InviteStatus;
+import smart_campus_backend.auth.entity.PasswordResetToken;
 import smart_campus_backend.auth.entity.Role;
 import smart_campus_backend.auth.entity.User;
 import smart_campus_backend.auth.repository.AdminInviteRepository;
+import smart_campus_backend.auth.repository.PasswordResetTokenRepository;
 import smart_campus_backend.auth.repository.UserRepository;
 import smart_campus_backend.auth.security.CustomUserDetailsService;
 import smart_campus_backend.auth.security.JwtUtil;
+import smart_campus_backend.mail.PasswordResetEmailService;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -44,9 +52,17 @@ public class AuthService {
     private final CustomUserDetailsService userDetailsService;
     private final AdminInviteRepository adminInviteRepository;
     private final ProfileImageService profileImageService;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final PasswordResetEmailService passwordResetEmailService;
 
     @Value("${google.client-id}")
     private String googleClientId;
+
+    @Value("${app.invites.base-url:http://localhost:5173}")
+    private String frontendBaseUrl;
+
+    @Value("${app.auth.password-reset.expiration-minutes:30}")
+    private long passwordResetExpirationMinutes;
 
     // ───── Register ─────────────────────────────────────────────────────────
     public AuthResponse register(RegisterRequest request) {
@@ -286,5 +302,63 @@ public class AuthService {
                 .profileImageUrl(user.getProfileImageUrl())
                 .role(user.getRole().name())
                 .build();
+    }
+
+    @Transactional
+    public void forgotPassword(String email) {
+        String normalizedEmail = email == null ? "" : email.trim().toLowerCase();
+        if (!StringUtils.hasText(normalizedEmail)) {
+            return;
+        }
+
+        User user = userRepository.findByEmail(normalizedEmail).orElse(null);
+        if (user == null || user.getProvider() != AuthProvider.LOCAL) {
+            return;
+        }
+
+        passwordResetTokenRepository.deleteByUserId(user.getId());
+
+        PasswordResetToken resetToken = PasswordResetToken.builder()
+                .user(user)
+                .token(UUID.randomUUID().toString())
+                .createdAt(LocalDateTime.now())
+                .expiresAt(LocalDateTime.now().plusMinutes(passwordResetExpirationMinutes))
+                .used(false)
+                .build();
+        PasswordResetToken saved = passwordResetTokenRepository.save(resetToken);
+
+        String resetUrl = frontendBaseUrl + "/reset-password?token=" + saved.getToken();
+        passwordResetEmailService.sendPasswordReset(user.getEmail(), resetUrl, passwordResetExpirationMinutes);
+    }
+
+    @Transactional
+    public void resetPassword(String token, String newPassword) {
+        if (!StringUtils.hasText(token) || !StringUtils.hasText(newPassword)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Token and new password are required");
+        }
+        if (newPassword.trim().length() < 8) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password must be at least 8 characters");
+        }
+
+        PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token.trim())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid password reset token"));
+
+        if (resetToken.isUsed()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password reset token is already used");
+        }
+        if (resetToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password reset token has expired");
+        }
+        User user = resetToken.getUser();
+        if (user.getProvider() != AuthProvider.LOCAL) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password reset is only available for email/password accounts");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword.trim()));
+        userRepository.save(user);
+
+        resetToken.setUsed(true);
+        passwordResetTokenRepository.save(resetToken);
+        passwordResetTokenRepository.deleteByUserId(user.getId());
     }
 }

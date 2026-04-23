@@ -18,6 +18,8 @@ const AUTH_ENDPOINTS = [
   '/api/auth/register',
   '/api/auth/register-invite',
   '/api/auth/google',
+  '/api/auth/forgot-password',
+  '/api/auth/reset-password',
 ];
 
 const toFriendlyAuthMessage = (serverMessage) => {

@@ -37,6 +37,18 @@ public class AuthController {
         return ResponseEntity.ok(authService.googleLogin(request.getIdToken()));
     }
 
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request.getEmail());
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request.getToken(), request.getNewPassword());
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping("/me")
     public ResponseEntity<CurrentUserResponse> me(Authentication authentication) {
         return ResponseEntity.ok(authService.currentUser(authentication.getName()));

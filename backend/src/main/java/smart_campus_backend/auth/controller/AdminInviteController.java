@@ -29,4 +29,11 @@ public class AdminInviteController {
     public ResponseEntity<List<AdminInviteResponse>> listInvites() {
         return ResponseEntity.ok(adminInviteService.listInvites());
     }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<Void> deleteInvite(@PathVariable Long id) {
+        adminInviteService.deleteInvite(id);
+        return ResponseEntity.noContent().build();
+    }
 }

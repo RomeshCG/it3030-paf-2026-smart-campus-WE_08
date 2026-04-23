@@ -14,7 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
-import { BookOpen, Building2, Copy, LifeBuoy, MoreHorizontal, ShieldCheck, BarChart3 } from 'lucide-react';
+import { BookOpen, Building2, Copy, LifeBuoy, MoreHorizontal, ShieldCheck, BarChart3, Trash2 } from 'lucide-react';
 import { NotificationBell } from '../components/NotificationBell';
 import { ADMIN_ROLES } from '@/constants/roles';
 import { MyBookingsPage } from '@/pages/MyBookingsPage';
@@ -328,6 +328,17 @@ export default function DashboardPage() {
       setTimeout(() => setCopiedInviteId(null), 2000);
     } catch {
       alert('Could not copy to clipboard');
+    }
+  };
+
+  const handleDeleteInvite = async (invite) => {
+    if (!window.confirm(`Delete invite for ${invite.email}?`)) return;
+    try {
+      await api.delete(`/api/admin/invites/${invite.id}`);
+      toast.success('Invite deleted');
+      await fetchInvites();
+    } catch (err) {
+      setInviteError(err?.response?.data?.message || 'Failed to delete invite');
     }
   };
 
@@ -662,6 +673,16 @@ export default function DashboardPage() {
                                   {copiedInviteId === inv.id && (
                                     <span className="text-xs text-emerald-600">Copied</span>
                                   )}
+                                  <Button
+                                    type="button"
+                                    variant="destructive"
+                                    size="icon"
+                                    className="shrink-0"
+                                    onClick={() => handleDeleteInvite(inv)}
+                                    title="Delete invite"
+                                  >
+                                    <Trash2 className="size-4" />
+                                  </Button>
                                 </div>
                               </td>
                             </tr>

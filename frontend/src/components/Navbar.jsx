@@ -17,10 +17,12 @@ export const Navbar = () => {
             borderTop: 'none'
         }}>
             <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none', color: 'var(--text-primary)' }}>
-                <div style={{ background: 'var(--accent-color)', padding: '6px', borderRadius: '8px' }}>
-                    <Layout size={24} color="white" />
-                </div>
-                <span style={{ fontWeight: 800, fontSize: '1.2rem', letterSpacing: '-0.5px' }}>SmartCampus</span>
+                <img
+                    src="/smart%20campus%20logo.png"
+                    alt="Smart Campus"
+                    style={{ width: '32px', height: '32px', objectFit: 'cover', borderRadius: '8px' }}
+                />
+                <span style={{ fontWeight: 800, fontSize: '1.2rem', letterSpacing: '-0.5px' }}>Smart Campus</span>
             </Link>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>

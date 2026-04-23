@@ -2,7 +2,10 @@ package smart_campus_backend.auth.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 import smart_campus_backend.auth.dto.AdminInviteCreateRequest;
 import smart_campus_backend.auth.dto.AdminInviteResponse;
 import smart_campus_backend.auth.entity.AdminInvite;
@@ -54,6 +57,13 @@ public class AdminInviteService {
                 .stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Transactional
+    public void deleteInvite(Long inviteId) {
+        AdminInvite invite = adminInviteRepository.findById(inviteId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Invite not found"));
+        adminInviteRepository.delete(invite);
     }
 
     private AdminInviteResponse toResponse(AdminInvite invite) {

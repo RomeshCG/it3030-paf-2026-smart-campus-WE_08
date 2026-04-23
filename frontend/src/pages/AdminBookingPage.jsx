@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { getAllBookings, approveBooking, rejectBooking, getTimeSlotAvailability } from '../api/bookingApi';
-import { CheckCircle, XCircle, Clock, Users, Calendar as CalendarIcon, MessageSquare, Shield, Search, Filter } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Users, Calendar as CalendarIcon, MessageSquare, Shield, Search, Filter, RefreshCw, ArrowUpDown } from 'lucide-react';
 import { NotificationBell } from '../components/NotificationBell';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,8 @@ export const AdminBookingPage = ({ embedded = false }) => {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('ALL'); // ALL, PENDING, WAITLISTED, APPROVED, REJECTED, CANCELLED
     const [search, setSearch] = useState('');
+    const [dateFilter, setDateFilter] = useState('');
+    const [sortBy, setSortBy] = useState('ACTION_FIRST');
     
     // Rejection Modal State
     const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
@@ -124,14 +126,53 @@ export const AdminBookingPage = ({ embedded = false }) => {
         }
     };
 
-    const filteredBookings = bookings.filter((b) => {
-        const matchesFilter = filter === 'ALL' || b.status === filter;
+    const filteredBookings = useMemo(() => {
+        const ACTION_STATUS_ORDER = {
+            PENDING: 0,
+            WAITLISTED: 1,
+            APPROVED: 2,
+            REJECTED: 3,
+            CANCELLED: 4,
+        };
+
+        const toDateTime = (booking) => {
+            const dateValue = booking?.date ?? '';
+            const timeValue = booking?.startTime ?? '00:00';
+            const parsed = new Date(`${dateValue}T${timeValue}`);
+            return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
+        };
+
         const query = search.toLowerCase();
-        const resourceName = String(b?.resourceName ?? '').toLowerCase();
-        const userName = String(b?.userName ?? '').toLowerCase();
-        const matchesSearch = resourceName.includes(query) || userName.includes(query);
-        return matchesFilter && matchesSearch;
-    });
+
+        const filtered = bookings.filter((b) => {
+            const matchesFilter = filter === 'ALL' || b.status === filter;
+            const resourceName = String(b?.resourceName ?? '').toLowerCase();
+            const userName = String(b?.userName ?? '').toLowerCase();
+            const bookingId = String(b?.id ?? '');
+            const matchesSearch = resourceName.includes(query) || userName.includes(query) || bookingId.includes(query);
+            const matchesDate = !dateFilter || b?.date === dateFilter;
+            return matchesFilter && matchesSearch && matchesDate;
+        });
+
+        return filtered.sort((a, b) => {
+            if (sortBy === 'DATE_ASC') {
+                return toDateTime(a) - toDateTime(b);
+            }
+            if (sortBy === 'DATE_DESC') {
+                return toDateTime(b) - toDateTime(a);
+            }
+            if (sortBy === 'QUEUE_FIRST') {
+                const aWait = a.status === 'WAITLISTED' ? 0 : 1;
+                const bWait = b.status === 'WAITLISTED' ? 0 : 1;
+                if (aWait !== bWait) return aWait - bWait;
+            }
+
+            const aOrder = ACTION_STATUS_ORDER[a.status] ?? 99;
+            const bOrder = ACTION_STATUS_ORDER[b.status] ?? 99;
+            if (aOrder !== bOrder) return aOrder - bOrder;
+            return toDateTime(b) - toDateTime(a);
+        });
+    }, [bookings, filter, search, dateFilter, sortBy]);
 
     const waitlistQueueByBookingId = useMemo(() => {
         const queueMap = new Map();
@@ -216,7 +257,7 @@ export const AdminBookingPage = ({ embedded = false }) => {
                                 <div className="min-w-[220px] flex-1">
                                     <label className="mb-2 block text-sm font-medium"><Search className="mr-1 inline size-4" /> Search</label>
                                     <Input
-                                        placeholder="Search by user or resource..."
+                                        placeholder="Search by user, resource, or booking ID..."
                                         value={search}
                                         onChange={(e) => setSearch(e.target.value)}
                                     />
@@ -236,7 +277,42 @@ export const AdminBookingPage = ({ embedded = false }) => {
                                         <option value="CANCELLED">Cancelled</option>
                                     </select>
                                 </div>
-                                <Button variant="outline" onClick={() => { setSearch(''); setFilter('ALL'); }}>Reset</Button>
+                                <div className="min-w-[180px]">
+                                    <label className="mb-2 block text-sm font-medium"><CalendarIcon className="mr-1 inline size-4" /> Date</label>
+                                    <Input
+                                        type="date"
+                                        value={dateFilter}
+                                        onChange={(e) => setDateFilter(e.target.value)}
+                                    />
+                                </div>
+                                <div className="min-w-[210px]">
+                                    <label className="mb-2 block text-sm font-medium"><ArrowUpDown className="mr-1 inline size-4" /> Sort</label>
+                                    <select
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                        value={sortBy}
+                                        onChange={(e) => setSortBy(e.target.value)}
+                                    >
+                                        <option value="ACTION_FIRST">Action first (Pending/Waitlist first)</option>
+                                        <option value="DATE_DESC">Date/time newest first</option>
+                                        <option value="DATE_ASC">Date/time oldest first</option>
+                                        <option value="QUEUE_FIRST">Waitlist first</option>
+                                    </select>
+                                </div>
+                                <Button variant="outline" onClick={fetchBookings} disabled={loading}>
+                                    <RefreshCw className={`mr-2 size-4 ${loading ? 'animate-spin' : ''}`} />
+                                    Refresh
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                        setSearch('');
+                                        setFilter('ALL');
+                                        setDateFilter('');
+                                        setSortBy('ACTION_FIRST');
+                                    }}
+                                >
+                                    Reset
+                                </Button>
                             </div>
                         </CardContent>
                     </Card>

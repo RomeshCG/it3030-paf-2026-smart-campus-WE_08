@@ -47,7 +47,14 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/register", "/api/auth/register-invite", "/api/auth/login", "/api/auth/google").permitAll()
+                        .requestMatchers(
+                                "/api/auth/register",
+                                "/api/auth/register-invite",
+                                "/api/auth/login",
+                                "/api/auth/google",
+                                "/api/auth/forgot-password",
+                                "/api/auth/reset-password"
+                        ).permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("SUPER_ADMIN")
                         .requestMatchers("/api/analytics/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
