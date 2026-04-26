@@ -70,7 +70,7 @@ cd backend
 ## Group Members
 
 - IT23184480 - Gamadikari G.A.M.R.C.K
-- IT23172982 - Perea G.R.C
+- IT23172982 - Perera G.R.C
 - IT23179394 - Samarakoon S.M.A.S
 - IT23164994 - Kaveesha P L S K
 
